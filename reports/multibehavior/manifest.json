@@ -1,0 +1,431 @@
+{
+  "schema_version": "1.0.0",
+  "config": {
+    "seed": 42,
+    "session_gap_minutes": 30,
+    "train_quantile": 0.8,
+    "validation_quantile": 0.9,
+    "label_horizon_days": 7,
+    "feature_windows_days": [
+      7,
+      30
+    ],
+    "property_chunk_rows": 1000000,
+    "interaction_weights": {
+      "view": 1.0,
+      "addtocart": 3.0,
+      "transaction": 5.0
+    },
+    "negative_samples_per_positive_query": 5,
+    "unknown_category_id": -1,
+    "padding_idx": 0,
+    "unknown_idx": 1
+  },
+  "config_sha256": "e2f8e5119132b740c9b53073870bb18b630acbb376053df6790ff2dc4cdd9245",
+  "pipeline_sha256": "9af99fe599f46672d36daf8be5b12ade20976c9bffe470fde349d5863cd2f02e",
+  "cutoffs": {
+    "train_end": "2015-08-18 04:23:20.445000+00:00",
+    "validation_end": "2015-09-02 17:49:14.032000+00:00",
+    "observation_end": "2015-09-18 02:59:47.788000+00:00"
+  },
+  "raw_inputs": {
+    "events.csv": {
+      "bytes": 94237913,
+      "sha256": "3745aa83238b1e6d44d8fda209807899f420084398f94ddf745f3cbcfecbf9e7"
+    },
+    "item_properties_part1.csv": {
+      "bytes": 484315749,
+      "sha256": "30aad5aeca58b2dc27dcc73e1708565f5818e45adb3eb57401f91e87355b0b81"
+    },
+    "item_properties_part2.csv": {
+      "bytes": 408929907,
+      "sha256": "d5e7d1a91dc40f522aeb596b267e6c87d8aed689a7192d12369cfb165eb987e5"
+    },
+    "category_tree.csv": {
+      "bytes": 14454,
+      "sha256": "94e865eb0a3d48cbbfe3b79079018dd92509315c88f5fd8d00d0b4b5af434f5b"
+    }
+  },
+  "versions": {
+    "python": "3.14.5",
+    "pandas": "3.0.6",
+    "numpy": "2.5.3",
+    "pyarrow": "25.0.1"
+  },
+  "protocol": {
+    "query": "after all events at first timestamp of each non-boundary session",
+    "history": "non-boundary events <= query_time",
+    "targets": "distinct purchased items in (query_time, query_time + 7 days], fully inside split",
+    "catalog_known_at": "first observed category/availability property or event",
+    "candidate": "known_at <= query_time and last observed availability != 0; unknown allowed",
+    "model_parameters": "fit train only; validation selects hyperparameters; no test refit",
+    "online_history": "past validation/test events may update history without fitting model parameters",
+    "reserved_indices": {
+      "PAD": 0,
+      "UNK": 1
+    },
+    "negative_sampling": "train only; not used for evaluation"
+  },
+  "artifacts": {
+    "behavior_edges_train.parquet": {
+      "rows": 1769390,
+      "schema": {
+        "visitorid": "int64",
+        "itemid": "int64",
+        "event": "large_string",
+        "count": "int64",
+        "last_event_time": "timestamp[ns, tz=UTC]"
+      },
+      "bytes": 27624007,
+      "sha256": "1e245aa3e0eb4315288340c8ca3f9eb228b6d5e82f8e196cc8badc5604e61133"
+    },
+    "catalog.parquet": {
+      "rows": 466868,
+      "schema": {
+        "itemid": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool"
+      },
+      "bytes": 3606592,
+      "sha256": "5a7921a6955b8c07df0597d2515458849260eb90b6de2956cbee49fa07efe465"
+    },
+    "category_tree.parquet": {
+      "rows": 1669,
+      "schema": {
+        "categoryid": "int64",
+        "parentid": "int64",
+        "root_category_id": "int64",
+        "category_depth": "int64",
+        "category_path": "large_string"
+      },
+      "bytes": 34790,
+      "sha256": "4a3f05ea86e706a94ad4f32121d0ae70fa8b7a900a46b3e53ff99325ac2ba7f3"
+    },
+    "events.parquet": {
+      "rows": 2755641,
+      "schema": {
+        "timestamp": "int64",
+        "visitorid": "int64",
+        "event": "large_string",
+        "itemid": "int64",
+        "transactionid": "int64",
+        "event_id": "int64",
+        "event_time": "timestamp[ns, tz=UTC]",
+        "session_id": "int64",
+        "event_order": "int32",
+        "split": "large_string",
+        "user_idx": "int32",
+        "item_idx": "int32"
+      },
+      "bytes": 98281940,
+      "sha256": "dc56738991ad2d0e0194ac6075a3b65a8ee3d05541cc1036f4262113aa836f14"
+    },
+    "excluded_queries.parquet": {
+      "rows": 242601,
+      "schema": {
+        "query_id": "int64",
+        "visitorid": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "split": "large_string",
+        "session_id": "int64",
+        "label_end": "timestamp[ns, tz=UTC]",
+        "exclusion_reason": "large_string"
+      },
+      "bytes": 8160523,
+      "sha256": "40ce8497dfb99433fa8949ec4b579e68ff87e9102203864bbb38823b9c4b9327"
+    },
+    "interactions_train.parquet": {
+      "rows": 1713144,
+      "schema": {
+        "visitorid": "int64",
+        "itemid": "int64",
+        "view": "int32",
+        "addtocart": "int32",
+        "transaction": "int32",
+        "interaction_score": "double",
+        "user_idx": "int32",
+        "item_idx": "int32",
+        "last_view_time": "timestamp[ns, tz=UTC]",
+        "view_recency_hours": "double",
+        "last_addtocart_time": "timestamp[ns, tz=UTC]",
+        "addtocart_recency_hours": "double",
+        "last_transaction_time": "timestamp[ns, tz=UTC]",
+        "transaction_recency_hours": "double"
+      },
+      "bytes": 54823641,
+      "sha256": "bcafd2a6b42b1629fa4ee46b60fdcf5fa7e576e73774e327d5bfe613c3111952"
+    },
+    "item_mapping.parquet": {
+      "rows": 212915,
+      "schema": {
+        "itemid": "int64",
+        "item_idx": "int32"
+      },
+      "bytes": 2433517,
+      "sha256": "8f8b0de26256a32295d88d8649d65f68e4f01b4b3f3d83564040ecaf9d1ece51"
+    },
+    "negative_samples_train.parquet": {
+      "rows": 91540,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "label": "int8",
+        "sampling_policy": "large_string"
+      },
+      "bytes": 719983,
+      "sha256": "5dc96d34a78037992b36dacdeea6a22ff0c41756c93f9eeafb45ee178356a5a5"
+    },
+    "products_train_snapshot.parquet": {
+      "rows": 456974,
+      "schema": {
+        "itemid": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool"
+      },
+      "bytes": 6032383,
+      "sha256": "845d3f3ef14b208751ff49469f446352c16ab663f5ad9d236144f93aefa3cec2"
+    },
+    "property_history.parquet": {
+      "rows": 2291853,
+      "schema": {
+        "timestamp": "int64",
+        "itemid": "int64",
+        "property": "large_string",
+        "value": "large_string",
+        "property_time": "timestamp[ns, tz=UTC]",
+        "numeric_value": "int64",
+        "valid_to": "timestamp[ns, tz=UTC]"
+      },
+      "bytes": 9308810,
+      "sha256": "f93dc1fb456a5e8e5c699f0114b71a1cebcd6501e9d18c31ab68fdacc4d6cfd9"
+    },
+    "purchase_targets.parquet": {
+      "rows": 88317,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "first_purchase_time": "timestamp[ns, tz=UTC]",
+        "purchase_event_count": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool",
+        "cold_item": "bool",
+        "item_idx": "int32"
+      },
+      "bytes": 1243048,
+      "sha256": "c5a97e089c5c7ecfded6f51866c80f79837e3df81da21f1cffa2ebabc2a8242a"
+    },
+    "queries.parquet": {
+      "rows": 1519027,
+      "schema": {
+        "query_id": "int64",
+        "visitorid": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "split": "large_string",
+        "session_id": "int64",
+        "label_end": "timestamp[ns, tz=UTC]",
+        "target_count": "int32",
+        "has_purchase_target": "bool",
+        "cold_user": "bool",
+        "user_idx": "int32",
+        "eligible_target_count": "int32"
+      },
+      "bytes": 50935121,
+      "sha256": "144d2845bed096e15b30fac3c834b8d7754094879a49fdf28de59eb05898ecf8"
+    },
+    "query_features.parquet": {
+      "rows": 1519027,
+      "schema": {
+        "query_id": "int64",
+        "visitorid": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "history_last_time": "timestamp[ns, tz=UTC]",
+        "view_count": "int32",
+        "addtocart_count": "int32",
+        "transaction_count": "int32",
+        "last_view_time": "timestamp[ns, tz=UTC]",
+        "last_addtocart_time": "timestamp[ns, tz=UTC]",
+        "last_transaction_time": "timestamp[ns, tz=UTC]",
+        "view_count_7d": "int32",
+        "addtocart_count_7d": "int32",
+        "transaction_count_7d": "int32",
+        "view_count_30d": "int32",
+        "addtocart_count_30d": "int32",
+        "transaction_count_30d": "int32",
+        "view_recency_hours": "double",
+        "has_view_history": "bool",
+        "addtocart_recency_hours": "double",
+        "has_addtocart_history": "bool",
+        "transaction_recency_hours": "double",
+        "has_transaction_history": "bool"
+      },
+      "bytes": 53731737,
+      "sha256": "4074154f26fc805b7ade037e1183fd359bc3ca6349b2986f3ca82b288e2b581c"
+    },
+    "splits/test_queries.parquet": {
+      "rows": 106382,
+      "schema": {
+        "query_id": "int64",
+        "visitorid": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "split": "large_string",
+        "session_id": "int64",
+        "label_end": "timestamp[ns, tz=UTC]",
+        "target_count": "int32",
+        "has_purchase_target": "bool",
+        "cold_user": "bool",
+        "user_idx": "int32",
+        "eligible_target_count": "int32"
+      },
+      "bytes": 4132036,
+      "sha256": "392df2fef78d973b98a7976bf0f8e068604136567263553ac843c1aa3959ae66"
+    },
+    "splits/test_targets.parquet": {
+      "rows": 6098,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "first_purchase_time": "timestamp[ns, tz=UTC]",
+        "purchase_event_count": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool",
+        "cold_item": "bool",
+        "item_idx": "int32"
+      },
+      "bytes": 107116,
+      "sha256": "283de9164b1c83caffc91bb97996cc3fb521cb45bc44872530bbaab5a587f83f"
+    },
+    "splits/train_queries.parquet": {
+      "rows": 1312772,
+      "schema": {
+        "query_id": "int64",
+        "visitorid": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "split": "large_string",
+        "session_id": "int64",
+        "label_end": "timestamp[ns, tz=UTC]",
+        "target_count": "int32",
+        "has_purchase_target": "bool",
+        "cold_user": "bool",
+        "user_idx": "int32",
+        "eligible_target_count": "int32"
+      },
+      "bytes": 44840351,
+      "sha256": "6debfdeb6dd660b2e9dc9149e49f4f6b3e414268911cee26a4ebc16c17f58f67"
+    },
+    "splits/train_targets.parquet": {
+      "rows": 73969,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "first_purchase_time": "timestamp[ns, tz=UTC]",
+        "purchase_event_count": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool",
+        "cold_item": "bool",
+        "item_idx": "int32"
+      },
+      "bytes": 1020169,
+      "sha256": "3a847bf0faaec1b78de1e793663de637c13ee58b25c648b5d69f9fa728888040"
+    },
+    "splits/validation_queries.parquet": {
+      "rows": 99873,
+      "schema": {
+        "query_id": "int64",
+        "visitorid": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "split": "large_string",
+        "session_id": "int64",
+        "label_end": "timestamp[ns, tz=UTC]",
+        "target_count": "int32",
+        "has_purchase_target": "bool",
+        "cold_user": "bool",
+        "user_idx": "int32",
+        "eligible_target_count": "int32"
+      },
+      "bytes": 3902259,
+      "sha256": "c86fb5d6bda61b9bb3eafd281dc1350c12942d3421b95fe641dcb7cc456f4d14"
+    },
+    "splits/validation_targets.parquet": {
+      "rows": 8250,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "first_purchase_time": "timestamp[ns, tz=UTC]",
+        "purchase_event_count": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool",
+        "cold_item": "bool",
+        "item_idx": "int32"
+      },
+      "bytes": 122111,
+      "sha256": "6ef50f2cb6df50ed34a5691b7cc0bfbb758a0dcadf17154b7513d6a61bc0926f"
+    },
+    "user_mapping.parquet": {
+      "rows": 1123755,
+      "schema": {
+        "visitorid": "int64",
+        "user_idx": "int32"
+      },
+      "bytes": 10141936,
+      "sha256": "0bff29cd0d4cd36f0e504401cdd72d1e9db2ed9adccea66b4f2f24ebc25f798c"
+    }
+  },
+  "checks_passed": true,
+  "elapsed_seconds": 127.24
+}

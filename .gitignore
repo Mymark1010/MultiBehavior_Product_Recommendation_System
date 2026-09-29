@@ -1,0 +1,23 @@
+# Local data, models and credentials must never be committed.
+.venv/
+.tools/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+data/**
+!data/README.md
+models/**
+!models/.gitkeep
+*.log
+*.tmp
+.DS_Store
+.idea/
+.vscode/
+dist/
+build/
+*.egg-info/
+reports/multibehavior/.running

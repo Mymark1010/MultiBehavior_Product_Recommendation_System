@@ -1,0 +1,11 @@
+{
+  "next_pairs_match": true,
+  "snapshot_matches": {
+    "available": true,
+    "categoryid": true
+  },
+  "same_timestamp_multi_item_groups": 2132,
+  "category_cycle_nodes": 0,
+  "user_mapping_valid": true,
+  "item_mapping_valid": true
+}

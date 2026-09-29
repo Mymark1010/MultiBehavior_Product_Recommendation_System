@@ -1,0 +1,76 @@
+{
+  "category_tree.csv": {
+    "rows": 1669,
+    "columns": [
+      "categoryid",
+      "parentid"
+    ],
+    "nulls": {
+      "categoryid": 0,
+      "parentid": 25
+    },
+    "property_types": 0,
+    "size_mb": 0.01
+  },
+  "events.csv": {
+    "rows": 2756101,
+    "columns": [
+      "timestamp",
+      "visitorid",
+      "event",
+      "itemid",
+      "transactionid"
+    ],
+    "nulls": {
+      "timestamp": 0,
+      "visitorid": 0,
+      "event": 0,
+      "itemid": 0,
+      "transactionid": 2733644
+    },
+    "property_types": 0,
+    "size_mb": 89.87,
+    "users": 1407580,
+    "items": 235061,
+    "duplicates": 460,
+    "events": {
+      "view": 2664312,
+      "addtocart": 69332,
+      "transaction": 22457
+    }
+  },
+  "item_properties_part1.csv": {
+    "rows": 10999999,
+    "columns": [
+      "timestamp",
+      "itemid",
+      "property",
+      "value"
+    ],
+    "nulls": {
+      "timestamp": 0,
+      "itemid": 0,
+      "property": 0,
+      "value": 0
+    },
+    "property_types": 1097,
+    "size_mb": 461.88
+  },
+  "item_properties_part2.csv": {
+    "rows": 9275903,
+    "columns": [
+      "timestamp",
+      "itemid",
+      "property",
+      "value"
+    ],
+    "nulls": {
+      "timestamp": 0,
+      "itemid": 0,
+      "property": 0,
+      "value": 0
+    },
+    "property_types": 1094,
+    "size_mb": 389.99
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "seed": 42,
+  "session_gap_minutes": 30,
+  "train_quantile": 0.8,
+  "validation_quantile": 0.9,
+  "label_horizon_days": 7,
+  "feature_windows_days": [7, 30],
+  "property_chunk_rows": 1000000,
+  "interaction_weights": {"view": 1.0, "addtocart": 3.0, "transaction": 5.0},
+  "negative_samples_per_positive_query": 5,
+  "unknown_category_id": -1,
+  "padding_idx": 0,
+  "unknown_idx": 1
+}

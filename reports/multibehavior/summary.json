@@ -1,0 +1,120 @@
+{
+  "raw_events": 2756101,
+  "clean_events": 2755641,
+  "removed_events": 460,
+  "events_by_behavior": {
+    "view": 2664218,
+    "addtocart": 68966,
+    "transaction": 22457
+  },
+  "events_by_split": {
+    "train": 2204470,
+    "test": 275484,
+    "validation": 275359,
+    "boundary_drop": 328
+  },
+  "properties": {
+    "item_properties_part1.csv": {
+      "raw_rows": 10999999
+    },
+    "item_properties_part2.csv": {
+      "raw_rows": 9275903
+    }
+  },
+  "retained_property_rows": 2291853,
+  "catalog_items": 466868,
+  "train_users": 1123755,
+  "train_items": 212915,
+  "train_user_item_pairs": 1713144,
+  "negative_training_pairs": 91540,
+  "train_category_unknown_pct": 20.956250146772188,
+  "negative_sampling_shortfall_queries": 0,
+  "train_availability_unknown_pct": 20.836953713923396,
+  "split_summary": {
+    "train": {
+      "queries": 1312772,
+      "users": 1057778,
+      "queries_with_purchase": 18308,
+      "queries_without_purchase": 1294464,
+      "purchase_target_pairs": 73969,
+      "unique_purchase_items": 9734,
+      "cold_user_query_pct": 0.0,
+      "cold_item_target_pct": 0.0,
+      "candidate_target_pair_coverage_pct": 89.73488893996134,
+      "macro_recall_candidate_ceiling_pct": 91.83443338042541,
+      "queries_excluded_incomplete_horizon": 83501,
+      "query_start": "2015-05-03 03:00:04.384000+00:00",
+      "query_end": "2015-08-11 04:23:19.244000+00:00"
+    },
+    "validation": {
+      "queries": 99873,
+      "users": 87299,
+      "queries_with_purchase": 1553,
+      "queries_without_purchase": 98320,
+      "purchase_target_pairs": 8250,
+      "unique_purchase_items": 1313,
+      "cold_user_query_pct": 85.32936829773813,
+      "cold_item_target_pct": 1.1272727272727272,
+      "candidate_target_pair_coverage_pct": 88.4,
+      "macro_recall_candidate_ceiling_pct": 90.02862274970516,
+      "queries_excluded_incomplete_horizon": 82661,
+      "query_start": "2015-08-18 04:23:22.451000+00:00",
+      "query_end": "2015-08-26 17:49:06.114000+00:00"
+    },
+    "test": {
+      "queries": 106382,
+      "users": 93562,
+      "queries_with_purchase": 1465,
+      "queries_without_purchase": 104917,
+      "purchase_target_pairs": 6098,
+      "unique_purchase_items": 1254,
+      "cold_user_query_pct": 90.04530841683743,
+      "cold_item_target_pct": 8.98655296818629,
+      "candidate_target_pair_coverage_pct": 88.91439816333224,
+      "macro_recall_candidate_ceiling_pct": 91.0141167895326,
+      "queries_excluded_incomplete_horizon": 76439,
+      "query_start": "2015-09-02 17:49:22.567000+00:00",
+      "query_end": "2015-09-11 02:59:45.585000+00:00"
+    }
+  },
+  "checks": {
+    "events_no_duplicates": true,
+    "events_required_non_null": true,
+    "purchases_have_transaction_id": true,
+    "valid_behavior_types": true,
+    "session_single_split": true,
+    "queries_unique": true,
+    "targets_unique": true,
+    "labels_strictly_future": true,
+    "labels_within_horizon": true,
+    "label_windows_within_split": true,
+    "history_not_future": true,
+    "feature_queries_match": true,
+    "features_contain_no_labels": true,
+    "target_count_matches": true,
+    "no_boundary_queries": true,
+    "user_mapping_valid": true,
+    "item_mapping_valid": true,
+    "interactions_unique": true,
+    "view_train_count_preserved": true,
+    "addtocart_train_count_preserved": true,
+    "transaction_train_count_preserved": true,
+    "properties_unique_keys": true,
+    "negatives_not_positive": true,
+    "negatives_train_only": true,
+    "negatives_unique": true,
+    "independent_feature_sample": true,
+    "available_no_future_metadata": true,
+    "category_id_no_future_metadata": true,
+    "negative_items_eligible_at_query": true
+  },
+  "limitations": [
+    "visitorid is an anonymous visitor, not a verified person",
+    "absence of purchase is not known dislike",
+    "availability is last-observed state, not guaranteed live stock",
+    "no exposure logs or causal conversion measurement",
+    "no training or model-quality claim; offline data readiness only",
+    "overlapping queries can share future purchases; report query metrics and user-macro metrics",
+    "cold rates here use purchase queries and differ from legacy next-item evaluation"
+  ]
+}

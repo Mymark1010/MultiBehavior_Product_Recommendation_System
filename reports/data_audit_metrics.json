@@ -1,0 +1,219 @@
+{
+  "files": {
+    "data\\processed\\category_tree_clean.parquet": {
+      "rows": 1669
+    },
+    "data\\processed\\events_clean_split.parquet": {
+      "rows": 2755641
+    },
+    "data\\processed\\interactions_train.parquet": {
+      "rows": 1713144
+    },
+    "data\\processed\\interactions_train_encoded.parquet": {
+      "rows": 1713144
+    },
+    "data\\processed\\item_mapping.parquet": {
+      "rows": 212915
+    },
+    "data\\processed\\products_train_snapshot.parquet": {
+      "rows": 456974
+    },
+    "data\\processed\\session_events.parquet": {
+      "rows": 2475048
+    },
+    "data\\processed\\user_mapping.parquet": {
+      "rows": 1123755
+    },
+    "data\\splits\\next_item_train.parquet": {
+      "rows": 583094
+    },
+    "data\\splits\\session_test.parquet": {
+      "rows": 66083
+    },
+    "data\\splits\\session_validation.parquet": {
+      "rows": 64243
+    },
+    "data\\interim\\item_properties_relevant.parquet": {
+      "rows": 2291853
+    }
+  },
+  "events": {
+    "nulls": {
+      "timestamp": 0,
+      "visitorid": 0,
+      "event": 0,
+      "itemid": 0,
+      "transactionid": 2733184,
+      "event_time": 0,
+      "session_id": 0,
+      "session_position": 0,
+      "session_length": 0,
+      "split": 0,
+      "user_seen_in_train": 0,
+      "item_seen_in_train": 0,
+      "cold_start_type": 0
+    },
+    "duplicates_raw_key": 0,
+    "split": {
+      "train": 2204470,
+      "test": 275484,
+      "validation": 275359,
+      "boundary_drop": 328
+    },
+    "event": {
+      "view": 2664218,
+      "addtocart": 68966,
+      "transaction": 22457
+    },
+    "session_split_max": 1
+  },
+  "interactions": {
+    "duplicates": 0,
+    "users_one_item_pct": 79.70304915217284,
+    "items_one_user_pct": 36.31308268557875,
+    "density_pct": 0.0007160048657042456,
+    "score_valid": true,
+    "nulls": {
+      "visitorid": 0,
+      "itemid": 0,
+      "addtocart": 0,
+      "transaction": 0,
+      "view": 0,
+      "interaction_score": 0,
+      "has_cart": 0,
+      "has_purchase": 0,
+      "last_interaction_time": 0
+    },
+    "max_items_user": 3283,
+    "max_events_user": 7757
+  },
+  "products": {
+    "nulls": {
+      "itemid": 0,
+      "available": 44697,
+      "category_id": 45167,
+      "seen_in_train": 0,
+      "parentid": 45324,
+      "root_categoryid": 45299,
+      "category_depth": 45299,
+      "category_path": 45299,
+      "candidate_at_train": 0
+    },
+    "train_nulls": {
+      "itemid": 0,
+      "available": 44365,
+      "category_id": 44619,
+      "seen_in_train": 0,
+      "parentid": 44620,
+      "root_categoryid": 44619,
+      "category_depth": 44619,
+      "category_path": 44619,
+      "candidate_at_train": 0
+    },
+    "available": {
+      "0": 357094,
+      "1": 55183,
+      "<NA>": 44697
+    },
+    "candidates": 99880,
+    "warm_candidates": 85138,
+    "category_not_in_tree": 132,
+    "duplicates": 0
+  },
+  "sessions": {
+    "train": {
+      "steps": 1979367,
+      "sessions": 1396273,
+      "one_step_pct": 84.79366141148616,
+      "max_steps": 415,
+      "events_original": {
+        "view": 2131918,
+        "addtocart": 54688,
+        "transaction": 17864
+      },
+      "events_retained": {
+        "view": 1955802,
+        "addtocart": 17287,
+        "transaction": 6278
+      },
+      "time_min": "2015-05-03 03:00:04.384000+00:00",
+      "time_max": "2015-08-18 04:23:01.129000+00:00"
+    },
+    "validation": {
+      "steps": 246777,
+      "sessions": 182534,
+      "one_step_pct": 86.00315557649535,
+      "max_steps": 229,
+      "events_original": {
+        "view": 265619,
+        "addtocart": 7286,
+        "transaction": 2454
+      },
+      "events_retained": {
+        "view": 243333,
+        "addtocart": 2566,
+        "transaction": 878
+      },
+      "time_min": "2015-08-18 04:23:22.451000+00:00",
+      "time_max": "2015-09-02 17:49:11.563000+00:00",
+      "history_rows": 64243,
+      "eval_sessions": 25549,
+      "cold_user_session_pct": 82.08931856432737,
+      "cold_target_session_pct": 5.02172296371678,
+      "target_candidate_pct": 75.52154683157853,
+      "target_warm_candidate_pct": 74.30819210145211,
+      "history_unknown_item_pct": 5.653534237193157,
+      "target_already_in_history_session_pct": 16.509452424752435
+    },
+    "test": {
+      "steps": 248904,
+      "sessions": 182821,
+      "one_step_pct": 85.78062695204599,
+      "max_steps": 267,
+      "events_original": {
+        "view": 266392,
+        "addtocart": 6963,
+        "transaction": 2129
+      },
+      "events_retained": {
+        "view": 245532,
+        "addtocart": 2643,
+        "transaction": 729
+      },
+      "time_min": "2015-09-02 17:49:22.567000+00:00",
+      "time_max": "2015-09-18 02:59:47.788000+00:00",
+      "history_rows": 66083,
+      "eval_sessions": 25996,
+      "cold_user_session_pct": 87.13648253577475,
+      "cold_target_session_pct": 8.493614402215725,
+      "target_candidate_pct": 68.52208032004924,
+      "target_warm_candidate_pct": 67.1834128327435,
+      "history_unknown_item_pct": 9.188444834526276,
+      "target_already_in_history_session_pct": 15.817818125865518
+    }
+  },
+  "properties": {
+    "counts": {
+      "available": 1503639,
+      "categoryid": 788214
+    },
+    "nulls": {
+      "timestamp": 0,
+      "itemid": 0,
+      "property": 0,
+      "value": 0,
+      "property_time": 0
+    },
+    "duplicates": 0,
+    "conflicting_keys": 0
+  },
+  "category": {
+    "roots": 25,
+    "missing_parents": 0
+  },
+  "encoding": {
+    "rows": 1713144,
+    "missing_indices": 0,
+    "same_interactions": true
+  }
+}
