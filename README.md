@@ -49,7 +49,7 @@ configs/                 Tham số xử lý và negative sampling
 scripts/                 Pipeline, truy cập dữ liệu, xác minh artifact
 tests/                   Kiểm thử độc lập với dữ liệu Retailrocket
 notebooks/               Notebook khảo sát ban đầu và hướng dẫn dùng bộ mới
-docs/                    Giao thức, từ điển dữ liệu, phân chia công việc
+docs/                    Giao thức, từ điển dữ liệu
 reports/                 Báo cáo audit ban đầu
 reports/multibehavior/    Kết quả xử lý mới và manifest
 data/raw/                Bốn CSV gốc, không theo dõi bằng Git
@@ -86,14 +86,6 @@ history = history_for_query(events, query)
 - Hybrid có fallback cho user mới; SASRec/MBGCN là hướng mở rộng.
 
 So sánh bằng Recall/NDCG@10/20 trên **cùng query, target và candidate**, kèm độ phủ target, kết quả warm/cold và tỷ lệ query không mua. Chọn tham số trên validation; test chỉ dùng báo cáo cuối.
-
-## Làm việc nhóm
-
-Đọc [CONTRIBUTING.md](CONTRIBUTING.md) và [gợi ý phân công](docs/TEAM_WORK.md). Mỗi thành viên làm trên branch riêng và tạo pull request vào `main`. Unit tests kiểm tra các ca rò rỉ thời gian và tính đúng của pipeline.
-
-Cấu hình GitHub Actions được cung cấp tại [docs/ci-workflow.yml](docs/ci-workflow.yml), hiện **chưa kích hoạt**. Để bật CI, chủ repo chuyển file này thành `.github/workflows/ci.yml` rồi commit bằng tài khoản/token có quyền `workflow`. Không cần quyền này để chạy tests tại máy.
-
-Chủ repo mời thành viên ở **Settings → Collaborators → Add people**. Public repo vẫn cần quyền cộng tác để thành viên đẩy branch trực tiếp.
 
 ## Phạm vi và giới hạn
 
