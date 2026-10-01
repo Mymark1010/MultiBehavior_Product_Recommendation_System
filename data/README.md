@@ -20,7 +20,7 @@ Số dòng bản raw đã kiểm tra:
 | item_properties_part2.csv | 9.275.903 |
 | category_tree.csv | 1.669 |
 
-Từ thư mục repo chạy `python scripts/prepare_multibehavior.py`. Không cần chạy notebook cũ trước.
+Sau khi cài dependency và kích hoạt môi trường Python theo README chính, từ thư mục repo chạy `python scripts/prepare_multibehavior.py`. Không cần chạy notebook cũ trước.
 
 SHA-256 raw trong `reports/multibehavior/manifest.json` là chuẩn đối chiếu chính xác giữa các thành viên. `python scripts/verify_artifacts.py` kiểm tra kết quả đã tạo. Dữ liệu của nhà cung cấp giữ điều kiện sử dụng của nguồn gốc; repo này không phân phối lại raw.
 

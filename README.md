@@ -1,12 +1,12 @@
 # Gợi ý sản phẩm cá nhân hóa từ tương tác đa hành vi
 
-Project sử dụng Retailrocket để khai thác **xem → thêm giỏ → mua**, với mục tiêu chính là xếp hạng sản phẩm được mua trong 7 ngày sau thời điểm gợi ý.
+Project sử dụng Retailrocket để khai thác ba loại tương tác **xem sản phẩm, thêm vào giỏ hàng và mua hàng**, với mục tiêu xếp hạng sản phẩm có khả năng được mua trong 7 ngày sau thời điểm gợi ý. Không giả định mọi lượt mua đều đi qua đủ ba hành vi hoặc theo một thứ tự cố định.
 
 Repo cung cấp pipeline dữ liệu, kiểm thử và giao thức thực nghiệm. Các mô hình gợi ý sẽ được phát triển tiếp trên cùng bộ dữ liệu này.
 
 ## Bắt đầu
 
-Yêu cầu Python 3.12 trở lên. Các lệnh dưới đây chạy từ thư mục repo.
+Mẫu CI cấu hình Python 3.12; môi trường đã chạy và kiểm tra dữ liệu hiện tại dùng Python 3.14.5. Các lệnh dưới đây chạy từ thư mục repo.
 
 ```powershell
 python -m venv .venv
@@ -15,6 +15,8 @@ python -m venv .venv
 ```
 
 Trên Linux/macOS dùng `.venv/bin/python` thay cho `.\.venv\Scripts\python.exe`.
+
+`requirements.txt` khai báo khoảng phiên bản thư viện. Để dùng đúng phiên bản thư viện của lần xử lý đã ghi nhận, cài bằng `python -m pip install -r requirements-lock.txt` trong môi trường đã kích hoạt; phiên bản Python được ghi trong [manifest](reports/multibehavior/manifest.json).
 
 Đặt bốn file Retailrocket vào `data/raw/` theo [hướng dẫn dữ liệu](data/README.md), rồi chạy:
 
@@ -30,13 +32,13 @@ CSV raw, Parquet, môi trường Python và trọng số mô hình **không đư
 ## Pipeline mới đã làm gì?
 
 1. Bỏ trùng hoàn toàn và dòng không hợp lệ; giữ từng hành vi riêng, kể cả trên cùng sản phẩm.
-2. Chuẩn hóa UTC, tạo session theo khoảng nghỉ >30 phút; chia thời gian 80/10/10 theo quantile sự kiện.
+2. Chuẩn hóa UTC, tạo session theo khoảng nghỉ >30 phút; lấy mốc phân vị 80% và 90% thời gian sự kiện để chia train/validation/test. Sau khi loại session qua ranh giới và query thiếu cửa sổ nhãn, số query không có tỷ lệ 80/10/10.
 3. Loại session đi qua ranh giới tập khỏi history/labels mô hình.
 4. Tạo một điểm dự đoán sau nhóm sự kiện có timestamp đầu tiên của mỗi session; không yêu cầu session có ít nhất hai item.
 5. Dùng lịch sử đã quan sát tại thời điểm dự đoán; nhãn là các sản phẩm mua trong 7 ngày tiếp theo. Giữ query không mua; ghi rõ query bị loại do không quan sát đủ cửa sổ nhãn.
 6. Tính số lần từng hành vi, số đếm 7/30 ngày, thời gian từ hành vi gần nhất. Bảng feature không chứa nhãn.
 7. Giữ lịch sử `categoryid`/`available` và timestamp nguồn; lấy trạng thái không muộn hơn thời điểm gợi ý. Category không biết dùng `-1`, availability thiếu vẫn giữ riêng.
-8. Tạo mapping chỉ từ train, bảng user–item và cạnh theo từng hành vi. `PAD=0`, `UNK=1`, ID đã biết bắt đầu từ 2.
+8. Tạo mapping chỉ từ train, bảng user–item và cạnh theo từng hành vi. Chỉ số mã hóa `user_idx`/`item_idx` dành `PAD=0`, `UNK=1`; chỉ số của ID có trong train bắt đầu từ 2. ID gốc được giữ nguyên.
 9. Tạo mẫu âm tùy chọn cho query train có mua, tối đa 5 item/query; chỉ lấy sản phẩm đã biết và đủ điều kiện tại thời điểm đó. Query ít ứng viên có thể nhận ít mẫu hơn và được báo cáo.
 10. Kiểm tra tính toàn vẹn, thời gian, bảo toàn số hành vi, nhãn/mẫu âm; lưu config, phiên bản thư viện, schema và checksum.
 
@@ -55,6 +57,10 @@ reports/multibehavior/    Kết quả xử lý mới và manifest
 data/raw/                Bốn CSV gốc, không theo dõi bằng Git
 data/multibehavior/       Dữ liệu mới đã xử lý, không theo dõi bằng Git
 ```
+
+Pipeline hiện tại là [scripts/prepare_multibehavior.py](scripts/prepare_multibehavior.py); notebook [02_multibehavior_overview.ipynb](notebooks/02_multibehavior_overview.ipynb) minh họa cách đọc kết quả. Hai notebook có tiền tố `01_` thuộc giai đoạn khảo sát và xử lý next-item ban đầu, không cần chạy trước pipeline hiện tại.
+
+Mẫu GitHub Actions nằm ở [docs/ci-workflow.yml](docs/ci-workflow.yml). File này chưa nằm trong `.github/workflows/`, nên repo hiện chưa có workflow CI tự động từ mẫu đó; kết quả kiểm tra được nêu trong báo cáo là kết quả chạy tại máy.
 
 ## Dùng dữ liệu trong mô hình
 
@@ -85,7 +91,13 @@ history = history_for_query(events, query)
 - Multi-task: học riêng view/cart/purchase, xếp hạng bằng nhánh purchase.
 - Hybrid có fallback cho user mới; SASRec/MBGCN là hướng mở rộng.
 
-So sánh bằng Recall/NDCG@10/20 trên **cùng query, target và candidate**, kèm độ phủ target, kết quả warm/cold và tỷ lệ query không mua. Chọn tham số trên validation; test chỉ dùng báo cáo cuối.
+So sánh bằng Recall/NDCG@10/20 trên **cùng query có nhãn mua, cùng target và cùng chính sách candidate**, kèm số query được chấm, độ phủ target, kết quả warm/cold và tỷ lệ query không mua. Tập candidate được dựng tại thời điểm từng query. Chọn tham số trên validation; test chỉ dùng báo cáo kết quả mô hình cuối. Xem quy tắc cho mô hình chỉ hỗ trợ item đã có trong train tại [giao thức dữ liệu](docs/DATA_PROTOCOL.md).
+
+## Kết quả kiểm tra dữ liệu
+
+Lần xử lý ngày 29/09/2026 ghi nhận 29 kiểm tra đạt và 20 file Parquet. Lần kiểm tra lại ngày 01/10/2026 có **51/51 kiểm tra dữ liệu đạt**, **11/11 unit tests đạt**; checksum của raw, đầu ra, cấu hình và mã pipeline khớp manifest. Kiểm tra độc lập lịch sử, recency và nhãn được thực hiện thêm trên 240 query lấy mẫu theo split và tình trạng có/không có nhãn mua; đây không phải kiểm tra độc lập từng feature của toàn bộ query.
+
+Chi tiết: [báo cáo dữ liệu](reports/multibehavior/REVIEW_VI.md), [kết quả kiểm tra lại](reports/multibehavior/recheck_2026-10-01.json). Các kiểm tra này xác nhận dữ liệu theo giao thức hiện tại; repo chưa có kết quả đánh giá mô hình.
 
 ## Phạm vi và giới hạn
 

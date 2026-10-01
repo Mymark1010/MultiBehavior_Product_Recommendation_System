@@ -29,7 +29,8 @@ def history_for_query(events, query):
 def candidates_at_time(directory, prediction_time, config, warm_only=False):
     """All eligible catalog items, independent of query targets.
 
-    warm_only=True is for ID-only models; report their lower coverage explicitly.
+    warm_only=True restricts candidates to items in the train vocabulary.
+    Use the same candidate policy for directly compared models and report coverage.
     Never force-include future positives in this candidate list.
     """
     directory = require_complete(directory)

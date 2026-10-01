@@ -1,52 +1,59 @@
-# B?o c?o ho?n thi?n d? li?u ?a h?nh vi
+# Báo cáo kiểm tra dữ liệu đa hành vi
 
-Ng?y ki?m tra: 29/09/2026. Pipeline: `scripts/prepare_multibehavior.py`. ??y l? k?t qu? x? l? tr?n to?n b? raw c?a project, v?i c?u h?nh trong manifest ?i k?m.
+Lần xử lý được ghi nhận: **29/09/2026**. Kiểm tra lại: **01/10/2026**. Pipeline: `scripts/prepare_multibehavior.py`; dữ liệu: `data/multibehavior/`. Cấu hình và phiên bản môi trường nằm trong [manifest](manifest.json).
 
-## K?t qu?
+## Kết quả xử lý
 
-- Gi? ?? **2.755.641 s? ki?n kh?c bi?t**: 2.664.218 view, 68.966 addtocart, 22.457 transaction. Ch? lo?i 460 d?ng tr?ng t? raw.
-- Gi? **1.713.144 c?p user?item train**, k?m t?ng lo?i h?nh vi, th?i gian cu?i v? recency t?i cu?i train.
-- T?o **1.519.027 query**, **88.317 c?p query?item mua**, **91.540 m?u ?m train**. Kh?ng c? query positive train b? thi?u so v?i m?c 5 m?u ?m ?? c?u h?nh trong l?n ch?y n?y.
-- ??c l?i ?? 20.275.902 d?ng properties; gi? 2.291.853 b?n c?p nh?t category/availability, timestamp ngu?n v? kho?ng hi?u l?c.
-- Catalog to?n k? c? **466.868 item**, nh?ng ph?i l?c `known_at <= query_time` khi g?i ?. Catalog to?n k? kh?ng ph?i t?p item ???c bi?t t? ??u train.
+- Giữ **2.755.641 sự kiện khác biệt**: 2.664.218 view, 68.966 addtocart, 22.457 transaction. Loại đúng 460 dòng trùng hoàn toàn từ raw. Số sự kiện transaction là số dòng mua sản phẩm, không phải số đơn hàng.
+- Giữ **1.713.144 cặp user–item train**, kèm số lần từng hành vi, thời điểm cuối và recency tại cuối train.
+- Tạo **1.519.027 query**, **88.317 cặp query–item có nhãn mua**, **91.540 mẫu âm train**. Mỗi query train có nhãn mua nhận đủ 5 mẫu âm trong lần xử lý này.
+- Đọc 20.275.902 dòng thuộc tính; giữ 2.291.853 bản cập nhật category/availability, timestamp nguồn và khoảng hiệu lực. Các thuộc tính khác chưa được dùng.
+- Catalog toàn kỳ có **466.868 item**. Khi dựng ứng viên phải lọc `known_at <= query_time` và availability tại thời điểm đó; không dùng toàn bộ catalog như thể tất cả item đã được biết từ đầu train.
 
-| Split | Query ?? c?a s? | Query c? mua | C?p query?item mua | ?? ph? target theo c?p | Query c? user m?i |
+| Split | Query đủ cửa sổ | Query có nhãn mua | Cặp query–item có nhãn mua | Độ phủ target theo cặp | Query có visitor ngoài train |
 |---|---:|---:|---:|---:|---:|
-| train | 1,312,772 | 18,308 | 73,969 | 89.73% | 0.00% |
-| validation | 99,873 | 1,553 | 8,250 | 88.40% | 85.33% |
-| test | 106,382 | 1,465 | 6,098 | 88.91% | 90.05% |
+| Train | 1.312.772 | 18.308 | 73.969 | 89,73% | 0,00% |
+| Validation | 99.873 | 1.553 | 8.250 | 88,40% | 85,33% |
+| Test | 106.382 | 1.465 | 6.098 | 88,91% | 90,05% |
 
-## C?c thay ??i quan tr?ng
+Một query là một thời điểm gợi ý; có thể có nhiều sản phẩm được mua sau đó hoặc không có nhãn mua. Số cặp query–item không phải số giao dịch độc lập, vì các cửa sổ nhãn của cùng visitor có thể chồng nhau.
 
-1. Gi? nguy?n view/cart/purchase trong chu?i s? ki?n, kh?ng g?p m?t h?nh vi tr?n c?ng item.
-2. ?i?m d? ?o?n ???c ch?n sau nh?m s? ki?n ??u ti?n c?ng timestamp c?a m?i session, kh?ng ch?n theo vi?c user s? mua.
-3. History v? feature ch? d?ng d? li?u ?? x?y ra. Label mua n?m trong 7 ng?y t??ng lai, ho?n to?n trong split. Feature ???c l?u ri?ng, kh?ng l?n target_count hay label_end.
-4. Kh?ng y?u c?u session c? hai item. Query kh?ng mua v?n ???c gi? ?? th?y ??ng ph?n b? nh?n.
-5. Metadata/candidate ???c truy xu?t theo th?i ?i?m query. Kh?ng d?ng availability cu?i train c? ??nh cho to?n b? test.
-6. Mapping fit tr?n train; PAD=0, UNK=1. Unknown category v? availability ???c bi?u di?n r? r?ng; kh?ng ?i?n t? t??ng lai.
-7. M?u ?m ch? d?ng train, kh?ng tr?ng target v? ph?i thu?c candidate t?i query_time. Kh?ng d?ng sampled negatives l?m t?p ??nh gi? m?c ??nh.
+## Quy tắc của bộ dữ liệu hiện tại
 
-## Ki?m tra ?? th?c hi?n
+1. Giữ riêng view/addtocart/transaction, kể cả các hành vi trên cùng sản phẩm; không yêu cầu một chuỗi xem → giỏ → mua đầy đủ.
+2. Đặt thời điểm query sau toàn bộ nhóm sự kiện có timestamp đầu tiên của session. Loại session qua ranh giới split và query thiếu cửa sổ nhãn; không lọc theo việc visitor có mua hay theo số sản phẩm tối thiểu trong session.
+3. History và feature chỉ dùng sự kiện đã xảy ra, loại `boundary_drop`. Nhãn là các item có transaction trong 7 ngày sau query, cùng visitor và cùng split, cũng loại `boundary_drop`. Bảng feature không chứa các cột nhãn.
+4. Metadata và candidate được tra tại thời điểm query. Snapshot cuối train không đại diện cho trạng thái sản phẩm ở mọi thời điểm validation/test.
+5. Mapping chỉ lấy ID có trong train. Chỉ số mã hóa dành PAD=0, UNK=1; chỉ số đã biết bắt đầu từ 2, còn ID raw được giữ nguyên. Category chưa biết và availability chưa biết được thể hiện bằng giá trị/cờ riêng.
+6. Mẫu âm chỉ dùng cho query train có nhãn mua, không trùng target và phải thuộc tập ứng viên tại thời điểm query. Validation/test không dùng các mẫu âm này làm tập ứng viên đánh giá.
 
-- **29 ki?m tra tr?n d? li?u th?t ??u qua**, bao g?m b?o to?n count c?a t?ng h?nh vi, kh?ng r? r? th?i gian, mapping/kh?a v? candidate c?a m?u ?m.
-- **20 artifact Parquet** ?? ki?m tra l?i checksum theo manifest; raw v? config/source hash c?ng kh?p.
-- **11 unit tests** qua: tr?ng d? li?u, h?nh vi c?ng item, c?ng timestamp, horizon kh?ng ??y ??, query kh?ng mua, feature kh?ng ch?a label, th?m s? ki?n t??ng lai kh?ng ??i feature qu? kh?, rolling window, c?y danh m?c, metadata as-of v? l?y m?u ?m khi ?t ?ng vi?n.
-- C?c cell code c?a notebook `02_multibehavior_overview.ipynb` ?? ch?y th?nh c?ng.
+## Kiểm tra đã thực hiện
 
-## Nh?ng gi?i h?n c?n l?i thu?c d? li?u/giao th?c
+Lần xử lý ngày 29/09/2026 ghi nhận **29 kiểm tra đạt** trong [summary.json](summary.json), gồm các ràng buộc khóa, thời gian, số đếm và tính hợp lệ của mẫu âm. Kết quả này thuộc lần tạo dữ liệu, không tự cập nhật khi đọc lại báo cáo.
 
-- 20,96% item train v?n thi?u/kh?ng bi?t category, 20,84% ch?a bi?t availability. Pipeline ?? x? l? tr?ng th?i unknown; kh?ng c? d? li?u ?? suy ra ch?c ch?n gi? tr? thi?u.
-- Test c? **1.465 query c? mua** tr?n 106.382 query ?? c?a s?. Khi t?nh Recall/NDCG tr?n positive queries, ph?i ghi r? m?u s? n?y v? kh?ng xem k?t qu? l? conversion rate c?a h? th?ng.
-- Query c?a c?ng user c? th? chia s? m?t giao d?ch t??ng lai do c?a s? 7 ng?y ch?ng nhau. N?n b?o c?o th?m metric user-macro; kh?ng coi t?ng query l? ??c l?p khi t?nh ?? tin c?y.
-- Target coverage test theo c?p l? **88,91%**; gi?i h?n Recall trung b?nh theo query do candidate l? **91,01%**. Hai s? kh?c nhau do m?i query c? s? target kh?c nhau. ??y kh?ng ph?i ?i?m ??t ???c c?a m? h?nh.
-- Trong test, 90,05% query thu?c visitor ch?a xu?t hi?n trong train; 8,99% c?p target l? item ch?a c? t??ng t?c train. C?n fallback/session/content ?? ph?c v? cold-start.
-- Ch? nh?ng query c? ?? 7 ng?y t??ng lai trong split m?i ???c gi?. ?? ghi ri?ng 83.501 query train, 82.661 validation v? 76.439 test kh?ng ?? c?a s?; kh?ng g?n ch?ng th?nh nh?n ?m.
-- Availability l? tr?ng th?i quan s?t g?n nh?t, kh?ng b?o ??m t?n kho tr?c ti?p; ch?a c? exposure logs ?? ph?n bi?t item ch?a th?y v?i item b? b? qua.
+Lần kiểm tra lại ngày 01/10/2026 ghi nhận trong [recheck_2026-10-01.json](recheck_2026-10-01.json):
 
-?? ph?/cold-start ? ??y thu?c **nh?n mua 7 ng?y**. Kh?ng k?t lu?n t?ng ch?t l??ng b?ng c?ch so tr?c ti?p v?i c?c t? l? next-item trong b?o c?o audit c?.
+- **11/11 unit tests đạt** cho các trường hợp trùng dữ liệu, nhiều hành vi cùng item, cùng timestamp, cửa sổ nhãn, feature lịch sử, cây danh mục, metadata theo thời gian và mẫu âm.
+- **20 file Parquet** khớp số dòng, checksum và schema đã ghi. Checksum của bốn file raw, config và mã pipeline cũng khớp manifest.
+- **51/51 kiểm tra dữ liệu đạt**, gồm đối chiếu events sạch với raw, mốc chia thời gian, mapping, nhãn mua, số target từng query, các file split và điều kiện của mẫu âm.
+- Hàm kiểm tra sẵn có tính lại số đếm lịch sử trên mẫu 100 query. Kiểm tra độc lập bổ sung kiểm tra history, số đếm cửa sổ, recency và tập target trên **240 query**, lấy 40 query cho mỗi nhóm split × có/không có nhãn mua. Việc dựng lại toàn bộ nhãn dùng hàm của pipeline; không coi đó là một triển khai độc lập.
 
-## T?i l?p v? b?n giao
+Các kiểm tra trên hỗ trợ kết luận rằng dữ liệu nhất quán với giao thức hiện tại. Chưa có kết quả huấn luyện hoặc đánh giá mô hình để kết luận chất lượng gợi ý.
 
-D? li?u m?i n?m t?i `data/multibehavior/`. Raw v? output notebook c? ???c gi? nguy?n. Repo ch?a m? ngu?n, config, tests, t?i li?u v? b?o c?o; d? li?u l?n ???c t?i t?o b?ng m?t l?nh theo README.
+## Giới hạn cần tính đến khi sử dụng
 
-Xem [manifest](manifest.json), [s? li?u ??y ??](summary.json), [giao th?c d? li?u](../../docs/DATA_PROTOCOL.md), [t? ?i?n b?ng](../../docs/DATA_DICTIONARY.md).
+- **20,96% item train** thiếu/không biết category; **20,84%** chưa biết availability. Pipeline giữ trạng thái unknown, không suy đoán giá trị còn thiếu từ tương lai.
+- Test có **1.465 query có nhãn mua trên 106.382 query đủ cửa sổ**, khoảng **1,38%**. Recall/NDCG trên các query có nhãn mua phải ghi rõ mẫu số; tỷ lệ này không phải conversion rate của một hệ thống gợi ý đang vận hành.
+- Target coverage test theo cặp là **88,91%**; cận trên Recall trung bình theo query chỉ xét candidate là **91,01%**. Hai số khác nhau do số target mỗi query khác nhau. Cận trên chưa xét giới hạn K; đây không phải điểm mô hình đạt được.
+- **90,05% query test** thuộc visitor chưa có trong train; **8,99% cặp target test** là item chưa có tương tác train. Mô hình phải quy định cách xử lý user/item mới và báo cáo rõ chính sách candidate khi so sánh.
+- Có **83.501 query train, 82.661 validation và 76.439 test** bị loại vì không đủ cửa sổ 7 ngày trong split. Chúng nằm trong `excluded_queries`, không được gán thành nhãn âm. Tỷ lệ query sau lọc không phải 80/10/10.
+- Các query cùng visitor có thể chia sẻ giao dịch tương lai. Khi đánh giá mô hình, cần xét kết quả trung bình theo visitor và tránh coi mọi query là quan sát thống kê độc lập.
+- Availability là trạng thái quan sát gần nhất, không bảo đảm tồn kho trực tiếp. Thiếu exposure logs để phân biệt sản phẩm chưa được nhìn thấy với sản phẩm đã bị bỏ qua.
+
+Độ phủ/cold-start ở đây thuộc **bài toán nhãn mua 7 ngày**. Các tỷ lệ next-item trong [báo cáo pipeline cũ](../data_audit_review_vi.md) dùng đơn vị đánh giá khác; không dùng chênh lệch giữa hai báo cáo để khẳng định chất lượng mô hình tăng.
+
+## Tái lập
+
+Dùng các lệnh trong [README](../../README.md) để tạo và xác minh dữ liệu. `requirements-lock.txt` lưu phiên bản thư viện của lần xử lý đã ghi nhận; manifest lưu cả phiên bản Python. Raw và dữ liệu đầu ra lớn không được theo dõi bằng Git.
+
+Xem [giao thức dữ liệu](../../docs/DATA_PROTOCOL.md) và [từ điển bảng](../../docs/DATA_DICTIONARY.md) trước khi dùng dữ liệu huấn luyện hoặc đánh giá.

@@ -1,4 +1,4 @@
-"""Check every generated artifact against its recorded schema/row count/hash."""
+"""Verify recorded artifact row counts and hashes, plus raw/config/pipeline hashes."""
 import argparse
 import json
 from pathlib import Path

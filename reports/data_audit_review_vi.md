@@ -1,14 +1,14 @@
-# Đánh giá dữ liệu Retailrocket của project
+# Đánh giá dữ liệu Retailrocket — pipeline next-item ban đầu
 
 > Đây là audit pipeline notebook ban đầu. Bộ dữ liệu đa hành vi mới đã được triển khai riêng; xem [báo cáo sau hoàn thiện](multibehavior/REVIEW_VI.md) và [giao thức mới](../docs/DATA_PROTOCOL.md). Không so trực tiếp metric next-item dưới đây với nhãn mua 7 ngày của bộ mới.
 
-Ngày kiểm tra: 29/09/2026. Phạm vi: hai notebook trong `notebooks/`, CSV raw và các Parquet đang lưu. Số liệu chất lượng được tính lại trực tiếp từ dữ liệu; không chạy lại pipeline để ghi đè dữ liệu. Các file JSON cùng thư mục lưu số liệu kiểm tra.
+Ngày kiểm tra: 29/09/2026. Phạm vi: `01_data_audit.ipynb`, `01_prepare_retailrocket.ipynb`, CSV raw và các Parquet dưới `data/interim/`, `data/processed/`, `data/splits/`. Số liệu chất lượng được tính lại trực tiếp từ dữ liệu; không chạy lại pipeline để ghi đè dữ liệu. Các file `data_raw_metrics.json`, `data_audit_metrics.json`, `data_audit_checks.json` và `data_split_summary.csv` cùng thư mục thuộc phạm vi khảo sát này. Mọi nhận xét về trạng thái pipeline bên dưới đều nói về bản next-item tại thời điểm đó.
 
 ## 1. Kết luận
 
 Dữ liệu đã có nền tảng tốt để xây dựng baseline gợi ý từ tương tác ngầm và dự đoán sản phẩm tiếp theo trong session. Việc làm sạch, chia thời gian, giới hạn metadata tại train cutoff và mã hóa ID theo train là hợp lý. Tuy nhiên, chưa nên xem bộ dữ liệu là hoàn thiện cho mọi bài toán: dữ liệu rất thưa, cold-start cao, metadata thiếu đáng kể trong nhóm item train và tập ứng viên tại train không bao phủ đủ target tương lai.
 
-`01_data_audit.ipynb` mới khảo sát events raw, thêm datetime trong bộ nhớ và xem dữ liệu trùng; notebook này chưa thực hiện xử lý và lưu dữ liệu hoàn chỉnh. Pipeline thực tế nằm trong `01_prepare_retailrocket.ipynb`.
+`01_data_audit.ipynb` khảo sát events raw, thêm datetime trong bộ nhớ và xem dữ liệu trùng; notebook này không tạo bộ dữ liệu đã xử lý. Pipeline next-item được đánh giá ở đây nằm trong `01_prepare_retailrocket.ipynb`.
 
 ## 2. Dữ liệu raw
 
@@ -83,7 +83,7 @@ Bỏ boundary session; gộp các hành vi liên tiếp có cùng item bằng c�
 
 Một session có nhiều dòng history cùng một target. Khi đánh giá theo thiết kế này cần dựng một history hoàn chỉnh và tính một kết quả cho mỗi session; tính mỗi dòng như một mẫu độc lập sẽ đặt trọng số lớn hơn lên session dài.
 
-## 4. Đánh giá chất lượng hiện tại
+## 4. Đánh giá chất lượng pipeline next-item tại lần kiểm tra
 
 ### Những điểm đã đạt
 
@@ -142,13 +142,8 @@ Snapshot cuối train phù hợp làm catalog/features cố định để dự �
 
 `session_length` trong bảng session là số events của session gốc, không phải số bước sau rút gọn; nó cũng chứa thông tin về kết thúc session. Không đưa độ dài toàn session vào feature dự đoán trực tuyến. File next_item_train hiện không chứa cột này, nhưng session_events có.
 
-## 5. Ưu tiên hoàn thiện
+## 5. Quan hệ với pipeline hiện tại
 
-1. Chốt bài toán là next-item, gợi ý mua hay xếp hạng user–item; quy định đơn vị đánh giá là session và tập ứng viên.
-2. Báo cáo đồng thời kết quả toàn bộ session đủ điều kiện, warm/cold-user/cold-item và tỷ lệ target nằm trong candidate. Xử lý unknown ID rõ ràng.
-3. Bổ sung kiểm tra tự động độ phủ candidate/metadata, tính khớp nhãn next-item, thời gian snapshot, chất lượng cây và mapping; không chỉ dựa vào các assert cơ bản cuối notebook.
-4. Nếu dùng metadata động cho từng thời điểm, lưu timestamp nguồn của mỗi thuộc tính và thực hiện join theo thời gian. Duy trì trạng thái unknown riêng.
-5. Chỉ thay cách rút gọn session khi mục tiêu yêu cầu giữ hành vi mua/giỏ. Giữ bảng events gốc đã sạch làm nguồn kiểm chứng.
-6. Đóng gói tham số session gap, cutoff, trọng số tương tác và phiên bản dữ liệu vào cấu hình/manifest để tái lập. Khi chạy lại properties, tránh đọc nhầm chunk cũ còn sót từ lần chạy khác.
+Pipeline `scripts/prepare_multibehavior.py` đã triển khai riêng bài toán mua trong 7 ngày, giữ các loại hành vi, tra metadata theo thời điểm, dành chỉ số unknown, tạo mẫu âm train và ghi config/manifest. Các thay đổi này được mô tả trong [báo cáo đa hành vi](multibehavior/REVIEW_VI.md); chúng không sửa ngược các artifact next-item được đánh giá ở đây.
 
-Chưa có bằng chứng trong các artifact đã kiểm tra về lọc bot/outlier, tạo negative samples, ma trận sparse, đặc trưng nội dung đầy đủ hoặc kết quả mô hình. Đây không tự động là lỗi: mức độ cần thiết phụ thuộc thuật toán và mục tiêu. User có tối đa 7.757 events và 3.283 item train khác nhau là đối tượng cần khảo sát thêm, chưa đủ cơ sở kết luận là bot.
+Trong phạm vi bản next-item đã kiểm tra, chưa có bằng chứng về lọc bot/outlier, tạo negative samples, ma trận sparse, đặc trưng nội dung đầy đủ hoặc kết quả mô hình. Nhận xét này không áp dụng cho mẫu âm của bộ đa hành vi hiện tại. Visitor có tối đa 7.757 events train và 3.283 item train khác nhau chưa đủ cơ sở để bị kết luận là bot.
