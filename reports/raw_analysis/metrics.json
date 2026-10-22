@@ -1,0 +1,521 @@
+{
+  "audit_date": "2026-10-02",
+  "scope": "All four raw CSV files; no sampling of CSV rows",
+  "definitions": {
+    "raw": "Original rows, including exact duplicates",
+    "clean": "Exact event-row deduplication; no bot filtering or minimum-frequency filtering",
+    "timezone": "UTC; user local time zones are unknown",
+    "session": "New visitor session after a gap strictly greater than 30 minutes",
+    "purchase": "A transaction event row is not necessarily an order or quantity",
+    "asof": "Latest observed property timestamp <= event timestamp"
+  },
+  "files": {
+    "events.csv": {
+      "bytes": 94237913,
+      "sha256": "3745aa83238b1e6d44d8fda209807899f420084398f94ddf745f3cbcfecbf9e7"
+    },
+    "item_properties_part1.csv": {
+      "bytes": 484315749,
+      "sha256": "30aad5aeca58b2dc27dcc73e1708565f5818e45adb3eb57401f91e87355b0b81"
+    },
+    "item_properties_part2.csv": {
+      "bytes": 408929907,
+      "sha256": "d5e7d1a91dc40f522aeb596b267e6c87d8aed689a7192d12369cfb165eb987e5"
+    },
+    "category_tree.csv": {
+      "bytes": 14454,
+      "sha256": "94e865eb0a3d48cbbfe3b79079018dd92509315c88f5fd8d00d0b4b5af434f5b"
+    }
+  },
+  "checks": {
+    "raw_matches_recorded_manifest": true,
+    "events_required_and_behaviors_valid": true,
+    "purchase_transaction_ids_present": true,
+    "behavior_counts_reconcile": true,
+    "sessions_conserve_event_rows": true,
+    "category_availability_keys_unambiguous": true,
+    "category_tree_valid": true,
+    "availability_binary": true,
+    "metadata_join_preserves_events": true,
+    "metadata_not_from_future": true,
+    "properties_all_rows_accounted": true,
+    "dedup_event_count_matches_pipeline": true,
+    "raw_property_count_matches_pipeline": true,
+    "raw_files_unchanged_after_analysis": true
+  },
+  "raw_events": {
+    "rows": 2756101,
+    "users": 1407580,
+    "items": 235061,
+    "transaction_ids": 17672,
+    "missing_required": 0,
+    "missing_transaction_id": 2733644,
+    "invalid_behaviors": 0,
+    "negative_required_values": 0,
+    "purchases_missing_transaction_id": 0,
+    "nonpurchases_with_transaction_id": 0,
+    "start_utc": "2015-05-03 03:00:04.384000",
+    "end_utc": "2015-09-18 02:59:47.788000"
+  },
+  "clean_events": 2755641,
+  "exact_duplicate_rows_removed": 460,
+  "users": {
+    "events": {
+      "n": 1407580.0,
+      "min": 1.0,
+      "mean": 1.9577153696415124,
+      "median": 1.0,
+      "p90": 3.0,
+      "p95": 5.0,
+      "p99": 13.0,
+      "max": 7757.0
+    },
+    "items": {
+      "n": 1407580.0,
+      "min": 1.0,
+      "mean": 1.5240192386933602,
+      "median": 1.0,
+      "p90": 2.0,
+      "p95": 3.0,
+      "p99": 8.0,
+      "max": 3814.0
+    },
+    "active_days": {
+      "n": 1407580.0,
+      "min": 1.0,
+      "mean": 1.17189360462638,
+      "median": 1.0,
+      "p90": 2.0,
+      "p95": 2.0,
+      "p99": 4.0,
+      "max": 131.0
+    },
+    "orders": {
+      "n": 1407580.0,
+      "min": 0.0,
+      "mean": 0.012554881427698603,
+      "median": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "max": 502.0
+    },
+    "span_days": {
+      "n": 1407580.0,
+      "min": 0.0,
+      "mean": 2.3754901048198542,
+      "median": 0.0,
+      "p90": 0.4804091944444473,
+      "p95": 10.309822968171325,
+      "p99": 69.08931908368046,
+      "max": 137.97285815972222
+    }
+  },
+  "items": {
+    "events": {
+      "n": 235061.0,
+      "min": 1.0,
+      "mean": 11.723088900328,
+      "median": 3.0,
+      "p90": 25.0,
+      "p95": 47.0,
+      "p99": 143.0,
+      "max": 3412.0
+    },
+    "users": {
+      "n": 235061.0,
+      "min": 1.0,
+      "mean": 9.126052386401827,
+      "median": 2.0,
+      "p90": 20.0,
+      "p95": 36.0,
+      "p99": 105.0,
+      "max": 2912.0
+    },
+    "active_days": {
+      "n": 235061.0,
+      "min": 1.0,
+      "mean": 7.113838535529076,
+      "median": 2.0,
+      "p90": 18.0,
+      "p95": 30.0,
+      "p99": 67.0,
+      "max": 139.0
+    },
+    "purchases": {
+      "n": 235061.0,
+      "min": 0.0,
+      "mean": 0.09553690318683235,
+      "median": 0.0,
+      "p90": 0.0,
+      "p95": 1.0,
+      "p99": 2.0,
+      "max": 133.0
+    }
+  },
+  "pairs": {
+    "events": {
+      "n": 2145179.0,
+      "min": 1.0,
+      "mean": 1.2845739213371006,
+      "median": 1.0,
+      "p90": 2.0,
+      "p95": 3.0,
+      "p99": 5.0,
+      "max": 308.0
+    },
+    "views": {
+      "n": 2145179.0,
+      "min": 0.0,
+      "mean": 1.2419560325735055,
+      "median": 1.0,
+      "p90": 2.0,
+      "p95": 2.0,
+      "p99": 5.0,
+      "max": 308.0
+    },
+    "carts": {
+      "n": 2145179.0,
+      "min": 0.0,
+      "mean": 0.0321492984967688,
+      "median": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 1.0,
+      "max": 31.0
+    },
+    "purchases": {
+      "n": 2145179.0,
+      "min": 0.0,
+      "mean": 0.010468590266826219,
+      "median": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "max": 14.0
+    }
+  },
+  "sparsity": {
+    "observed_user_item_pairs": 2145179.0,
+    "density_pct": 0.0006483505297320101,
+    "users_one_item_pct": 79.53366771338041,
+    "users_one_event_pct": 71.1569502266301,
+    "items_one_user_pct": 34.60676164910385,
+    "buyers": 11719.0,
+    "purchased_items": 12025.0
+  },
+  "concentration": {
+    "users_events": {
+      "top_1pct_share_pct": 17.522565530125295,
+      "top_10pct_share_pct": 42.253798662452766,
+      "gini": 0.4284197773499969
+    },
+    "users_purchases": {
+      "top_1pct_share_pct": 100.0,
+      "top_10pct_share_pct": 100.0,
+      "gini": 0.9953817915252798
+    },
+    "items_events": {
+      "top_1pct_share_pct": 22.95386082584778,
+      "top_10pct_share_pct": 64.02786139413661,
+      "gini": 0.7393559644532277
+    },
+    "items_purchases": {
+      "top_1pct_share_pct": 48.194326935921985,
+      "top_10pct_share_pct": 100.0,
+      "gini": 0.9679074437018158
+    }
+  },
+  "time": {
+    "calendar_days": 139,
+    "zero_event_days": [],
+    "busiest_day": {
+      "date": "2015-07-26 00:00:00",
+      "events": 32692,
+      "users": 17516,
+      "views": 32077,
+      "carts": 471,
+      "purchases": 144
+    },
+    "quietest_day": {
+      "date": "2015-09-18 00:00:00",
+      "events": 1528,
+      "users": 1016,
+      "views": 1479,
+      "carts": 34,
+      "purchases": 15
+    }
+  },
+  "simultaneous_events": {
+    "visitor_timestamp_buckets": 2753015,
+    "multiple_events_buckets": 2143,
+    "multiple_items_buckets": 2132,
+    "multiple_behaviors_buckets": 12
+  },
+  "sessions": {
+    "events": {
+      "n": 1761675.0,
+      "min": 1.0,
+      "mean": 1.5642164417386861,
+      "median": 1.0,
+      "p90": 2.0,
+      "p95": 4.0,
+      "p99": 9.0,
+      "max": 417.0
+    },
+    "items": {
+      "n": 1761675.0,
+      "min": 1.0,
+      "mean": 1.3327390125874523,
+      "median": 1.0,
+      "p90": 2.0,
+      "p95": 3.0,
+      "p99": 6.0,
+      "max": 389.0
+    },
+    "duration_minutes": {
+      "n": 1761675.0,
+      "min": 0.0,
+      "mean": 1.7540574461047993,
+      "median": 0.0,
+      "p90": 3.5527066666666727,
+      "p95": 10.402458333333287,
+      "p99": 29.87563633333334,
+      "max": 728.4041333333333
+    },
+    "summary": {
+      "sessions": 1761675.0,
+      "one_event_pct": 78.27567513871742,
+      "one_item_pct": 85.01999517504647,
+      "purchase_session_pct": 0.8115571827947834,
+      "purchase_sessions": 14297.0
+    },
+    "sessions_per_user": {
+      "min": 1.0,
+      "mean": 1.2515629662257208,
+      "median": 1.0,
+      "p99": 5.0,
+      "max": 462.0
+    }
+  },
+  "orders": {
+    "event_rows": {
+      "n": 17672.0,
+      "min": 1.0,
+      "mean": 1.270767315527388,
+      "median": 1.0,
+      "p90": 2.0,
+      "p95": 3.0,
+      "p99": 5.0,
+      "max": 31.0
+    },
+    "distinct_items": {
+      "n": 17672.0,
+      "min": 1.0,
+      "mean": 1.263184698958805,
+      "median": 1.0,
+      "p90": 2.0,
+      "p95": 3.0,
+      "p99": 5.0,
+      "max": 31.0
+    },
+    "span_seconds": {
+      "n": 17672.0,
+      "min": 0.0,
+      "mean": 4.567349196469053,
+      "median": 0.0,
+      "p90": 0.001,
+      "p95": 0.047,
+      "p99": 0.338320000000007,
+      "max": 19321.969
+    },
+    "transaction_ids_multiple_users": 0
+  },
+  "purchase_history": {
+    "purchase_event_rows": 22457.0,
+    "with_strictly_prior_view": 19824.0,
+    "with_strictly_prior_cart": 20005.0,
+    "with_both_prior": 18030.0,
+    "with_neither_prior": 658.0,
+    "first_view_same_timestamp": 0.0,
+    "first_cart_same_timestamp": 0.0,
+    "with_earlier_purchase_same_pair": 1187.0,
+    "median_hours_from_first_view": 0.1742838888888889,
+    "median_hours_from_first_cart": 0.0825386111111111
+  },
+  "properties": {
+    "rows": 20275902,
+    "items": 417053,
+    "property_types": 1104,
+    "missing_required": 0,
+    "start_utc": "2015-05-10 03:00:00",
+    "end_utc": "2015-09-13 03:00:00",
+    "key_quality": {
+      "exact_duplicate_rows": 0.0,
+      "conflicting_keys": 0.0,
+      "repeated_keys": 0.0
+    },
+    "metadata_conflicting_keys": 0,
+    "per_item": {
+      "property_types": {
+        "n": 417053.0,
+        "min": 12.0,
+        "mean": 28.782466497063922,
+        "median": 27.0,
+        "p90": 41.0,
+        "p95": 48.0,
+        "p99": 51.0,
+        "max": 59.0
+      },
+      "property_rows": {
+        "n": 417053.0,
+        "min": 12.0,
+        "mean": 48.617087036899385,
+        "median": 42.0,
+        "p90": 83.0,
+        "p95": 110.0,
+        "p99": 133.0,
+        "max": 468.0
+      }
+    },
+    "event_item_overlap": {
+      "overlap_items": 185246,
+      "event_items_without_any_properties": 49815,
+      "property_items_without_events": 231807,
+      "event_rows_with_any_property_anytime": 2500065
+    },
+    "updates": {
+      "updates": {
+        "n": 12003814.0,
+        "min": 1.0,
+        "mean": 1.6891216408384868,
+        "median": 1.0,
+        "p90": 1.0,
+        "p95": 1.0,
+        "p99": 18.0,
+        "max": 18.0
+      }
+    },
+    "metadata_changes": [
+      {
+        "property": "categoryid",
+        "rows": 788214,
+        "items": 417053,
+        "changed_value_rows": 25619,
+        "repeated_same_value_rows": 345542
+      },
+      {
+        "property": "available",
+        "rows": 1503639,
+        "items": 417053,
+        "changed_value_rows": 171748,
+        "repeated_same_value_rows": 914838
+      }
+    ],
+    "event_rows_with_property_known_by_event": 2362466
+  },
+  "categories": {
+    "rows": 1669,
+    "duplicate_ids": 0,
+    "root_count": 25,
+    "invalid_paths": [],
+    "leaf_count": 1307,
+    "max_depth": 5,
+    "depth_distribution": {
+      "0": 25,
+      "1": 174,
+      "2": 702,
+      "3": 665,
+      "4": 90,
+      "5": 13
+    }
+  },
+  "metadata_at_event": [
+    {
+      "event": "view",
+      "events": 2664218,
+      "availability_unknown": 522293,
+      "observed_unavailable": 850050,
+      "observed_available": 1291875,
+      "category_missing": 640730,
+      "category_outside_tree": 0
+    },
+    {
+      "event": "addtocart",
+      "events": 68966,
+      "availability_unknown": 7009,
+      "observed_unavailable": 3895,
+      "observed_available": 58062,
+      "category_missing": 11924,
+      "category_outside_tree": 0
+    },
+    {
+      "event": "transaction",
+      "events": 22457,
+      "availability_unknown": 2449,
+      "observed_unavailable": 1423,
+      "observed_available": 18585,
+      "category_missing": 4213,
+      "category_outside_tree": 0
+    }
+  ],
+  "current_protocol": {
+    "source": "reports/multibehavior/summary.json (recorded pipeline run)",
+    "events_by_split": {
+      "train": 2204470,
+      "test": 275484,
+      "validation": 275359,
+      "boundary_drop": 328
+    },
+    "split_summary": {
+      "train": {
+        "queries": 1312772,
+        "users": 1057778,
+        "queries_with_purchase": 18308,
+        "queries_without_purchase": 1294464,
+        "purchase_target_pairs": 73969,
+        "unique_purchase_items": 9734,
+        "cold_user_query_pct": 0.0,
+        "cold_item_target_pct": 0.0,
+        "candidate_target_pair_coverage_pct": 89.73488893996134,
+        "macro_recall_candidate_ceiling_pct": 91.83443338042541,
+        "queries_excluded_incomplete_horizon": 83501,
+        "query_start": "2015-05-03 03:00:04.384000+00:00",
+        "query_end": "2015-08-11 04:23:19.244000+00:00"
+      },
+      "validation": {
+        "queries": 99873,
+        "users": 87299,
+        "queries_with_purchase": 1553,
+        "queries_without_purchase": 98320,
+        "purchase_target_pairs": 8250,
+        "unique_purchase_items": 1313,
+        "cold_user_query_pct": 85.32936829773813,
+        "cold_item_target_pct": 1.1272727272727272,
+        "candidate_target_pair_coverage_pct": 88.4,
+        "macro_recall_candidate_ceiling_pct": 90.02862274970516,
+        "queries_excluded_incomplete_horizon": 82661,
+        "query_start": "2015-08-18 04:23:22.451000+00:00",
+        "query_end": "2015-08-26 17:49:06.114000+00:00"
+      },
+      "test": {
+        "queries": 106382,
+        "users": 93562,
+        "queries_with_purchase": 1465,
+        "queries_without_purchase": 104917,
+        "purchase_target_pairs": 6098,
+        "unique_purchase_items": 1254,
+        "cold_user_query_pct": 90.04530841683743,
+        "cold_item_target_pct": 8.98655296818629,
+        "candidate_target_pair_coverage_pct": 88.91439816333224,
+        "macro_recall_candidate_ceiling_pct": 91.0141167895326,
+        "queries_excluded_incomplete_horizon": 76439,
+        "query_start": "2015-09-02 17:49:22.567000+00:00",
+        "query_end": "2015-09-11 02:59:45.585000+00:00"
+      }
+    },
+    "train_category_unknown_pct": 20.956250146772188,
+    "train_availability_unknown_pct": 20.836953713923396
+  },
+  "elapsed_seconds": 120.69
+}

@@ -8,7 +8,7 @@ Tất cả đường dẫn dưới đây tương đối với `data/multibehavio
 | user_mapping.parquet | Một visitor train | visitorid → user_idx từ 2 |
 | item_mapping.parquet | Một item train | itemid → item_idx từ 2 |
 | interactions_train.parquet | Một user–item train | Đếm ba hành vi, interaction_score theo trọng số cấu hình, thời gian cuối/recency từng hành vi tại train cutoff |
-| behavior_edges_train.parquet | Một user–item–behavior train | Số lần và thời điểm cuối; cho mô hình đồ thị/đa nhiệm |
+| behavior_edges_train.parquet | Một user–item–behavior train | Số lần và thời điểm cuối, giữ riêng từng loại hành vi |
 | queries.parquet | Một điểm gợi ý đủ cửa sổ nhãn | query_id, session_id, visitorid, user_idx, query_time, split; các cột phục vụ đánh giá: label_end, target_count, has_purchase_target, cold_user, eligible_target_count |
 | query_features.parquet | Một query | Số đếm history toàn bộ/7d/30d, last time/recency và cờ từng hành vi; không có label |
 | purchase_targets.parquet | Một query–item được mua | Nhãn dùng huấn luyện/đánh giá: first_purchase_time, purchase_event_count, item_idx; metadata tại thời điểm query và cờ cold_item/candidate_at_query phục vụ phân tích độ phủ |
@@ -27,6 +27,6 @@ Trong `query_features`, các cột đếm dùng hậu tố `_count`, `_count_7d`
 
 Từ điển này chỉ áp dụng cho `data/multibehavior/`. Các bảng cùng tên dưới `data/processed/` thuộc pipeline next-item cũ, có schema và quy tắc mã hóa khác; không dùng lẫn hai bộ mapping.
 
-History không bị nhân bản ra một bảng rất lớn cho từng query: lấy từ events bằng visitorid và `event_time <= query_time`, loại boundary. Dùng `history_for_query()` làm tham chiếu và tạo batch/index phù hợp trong model loader.
+History không bị nhân bản ra một bảng rất lớn cho từng query: lấy từ events bằng visitorid và `event_time <= query_time`, loại boundary. Dùng `history_for_query()` làm tham chiếu khi đọc lịch sử.
 
 Không dùng `session_length` đầy đủ để dự đoán khi session chưa kết thúc. Bộ events mới không tạo feature này.
