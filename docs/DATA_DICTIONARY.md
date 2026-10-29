@@ -1,32 +1,28 @@
-# Từ điển dữ liệu đa hành vi — giao thức v1
+# Từ điển dữ liệu next-step — schema v2
 
-Tất cả đường dẫn dưới đây tương đối với `data/multibehavior/`. Schema và số dòng chính xác xem manifest sau khi chạy pipeline.
+Các đường dẫn tương đối với `data/nextstep/`. Số dòng thực tế chỉ xác định sau khi chạy pipeline trên nguồn tương ứng.
 
-| File | Đơn vị một dòng | Nội dung/chú ý |
+| Bảng | Đơn vị một dòng | Nội dung chính |
 |---|---|---|
-| events.parquet | Một sự kiện khác biệt | ID raw, event_id, loại hành vi, UTC time, session, split, user_idx/item_idx; chưa gộp hành vi |
-| user_mapping.parquet | Một visitor train | visitorid → user_idx từ 2 |
-| item_mapping.parquet | Một item train | itemid → item_idx từ 2 |
-| interactions_train.parquet | Một user–item train | Đếm ba hành vi, interaction_score theo trọng số cấu hình, thời gian cuối/recency từng hành vi tại train cutoff |
-| behavior_edges_train.parquet | Một user–item–behavior train | Số lần và thời điểm cuối, giữ riêng từng loại hành vi |
-| queries.parquet | Một điểm gợi ý đủ cửa sổ nhãn | query_id, session_id, visitorid, user_idx, query_time, split; các cột phục vụ đánh giá: label_end, target_count, has_purchase_target, cold_user, eligible_target_count |
-| query_features.parquet | Một query | Số đếm history toàn bộ/7d/30d, last time/recency và cờ từng hành vi; không có label |
-| purchase_targets.parquet | Một query–item được mua | Nhãn dùng huấn luyện/đánh giá: first_purchase_time, purchase_event_count, item_idx; metadata tại thời điểm query và cờ cold_item/candidate_at_query phục vụ phân tích độ phủ |
-| excluded_queries.parquet | Một query không đủ cửa sổ nhãn | Giữ lý do loại; không phải negative |
-| negative_samples_train.parquet | Một query–item được lấy mẫu | label=0 và chính sách lấy mẫu; chỉ query train có mua |
-| property_history.parquet | Một bản cập nhật item–property | available/categoryid, value, property_time, valid_to; không lấp thiếu bằng tương lai |
-| catalog.parquet | Một item quan sát được | known_at, seen_in_train; phải lọc known_at tại lúc dùng |
-| category_tree.parquet | Một danh mục | parent, root, depth, path đã kiểm tra chu trình/tham chiếu |
-| products_train_snapshot.parquet | Một item đã biết tại cuối train | Metadata tại train cutoff, cờ unknown, candidate_at_query; không phải trạng thái của mọi ngày test |
-| splits/*_queries.parquet | Query của một split | train, validation hoặc test |
-| splits/*_targets.parquet | Target của một split | Có thể nhiều target/query; không tính metric mỗi dòng như query riêng |
+| events.parquet | Sự kiện raw khác biệt | visitorid, itemid, event, event_time UTC, event_id, session_id, split, user_idx, item_idx |
+| user_mapping.parquet | Visitor train | visitorid → user_idx từ 2 |
+| item_mapping.parquet | Item train | itemid → item_idx từ 2 |
+| interactions_train.parquet | Visitor–item train | Số lần từng hành vi, điểm trọng số log, thời điểm cuối và recency_hours tại cutoff |
+| behavior_edges_train.parquet | Visitor–item–behavior train | count, last_event_time; không phải đồ thị prefix |
+| queries.parquet | Prefix sau một nhóm timestamp | query_id, session_id, visitorid, query_time, prefix_group_count, prefix_event_count, split, user_idx, cold_user; target_time/target_count/eligible_target_count chỉ phục vụ nhãn |
+| nextstep_targets.parquet | Query–item ở nhóm kế | target_time, target_event_count, item_idx, cold_item; metadata tại query_time và candidate_at_query phục vụ phân tích |
+| query_features.parquet | Query | ID, query_time, số nhóm/sự kiện prefix, view_count/addtocart_count/transaction_count, last_*_time, *_recency_seconds, has_*_history; không chứa nhãn |
+| excluded_steps.parquet | Nhóm không tạo query | group_event_count; lý do no_next_group hoặc boundary_session |
+| negative_samples_train.parquet | Query train–item âm được lấy mẫu | label=0, sampling_policy; có thể rỗng khi cấu hình tắt |
+| property_history.parquet | Bản cập nhật thuộc tính | available/categoryid, property_time, numeric_value, valid_to |
+| catalog.parquet | Item quan sát được | known_at, seen_in_train |
+| category_tree.parquet | Danh mục | parentid, root_category_id, category_depth, category_path |
+| products_train_snapshot.parquet | Item đã biết ở cutoff train | Metadata và cờ unknown tại cutoff, không thay metadata mọi query |
+| splits/*_queries.parquet | Query một split | train, validation, test |
+| splits/*_targets.parquet | Query–item một split | target có thể nhiều item; không tính mỗi dòng như một query riêng |
 
-Trong `query_features`, các cột đếm dùng hậu tố `_count`, `_count_7d`, `_count_30d`. Trong `interactions_train`, ba cột đếm tên là `view`, `addtocart`, `transaction`; trong `behavior_edges_train`, cột đếm tên là `count`. Các thời điểm là UTC, recency tính theo giờ. `NaN` recency nghĩa là chưa quan sát hành vi trong lịch sử được phép dùng; category -1 nghĩa là không biết, available NA nghĩa là chưa biết trạng thái.
+Pipeline tạo 14 bảng chính và 6 bảng split. `dataset_info.json` là marker schema/task, không phải bảng Parquet. `manifest.json` và `summary.json` ở `reports/nextstep/` chỉ xuất hiện sau lần chạy thành công.
 
-`interaction_score = log(1 + view) + 3 × log(1 + addtocart) + 5 × log(1 + transaction)` với cấu hình hiện tại. Đây là điểm tương tác theo trọng số quy ước, không phải xác suất mua hoặc kết quả dự đoán của mô hình.
+Query ID là số thứ tự nhóm theo `(session_id, query_time)` từ 1 trước khi loại nhóm cuối/boundary; có thể không liên tục. Query ID không đồng nhất với session ID. Prefix không được nhân bản ra một bảng sự kiện lớn: dùng `history_for_query()` để lấy phần phiên đã quan sát.
 
-Từ điển này chỉ áp dụng cho `data/multibehavior/`. Các bảng cùng tên dưới `data/processed/` thuộc pipeline next-item cũ, có schema và quy tắc mã hóa khác; không dùng lẫn hai bộ mapping.
-
-History không bị nhân bản ra một bảng rất lớn cho từng query: lấy từ events bằng visitorid và `event_time <= query_time`, loại boundary. Dùng `history_for_query()` làm tham chiếu khi đọc lịch sử.
-
-Không dùng `session_length` đầy đủ để dự đoán khi session chưa kết thúc. Bộ events mới không tạo feature này.
+`interaction_score = log(1+view) + 3×log(1+addtocart) + 5×log(1+transaction)` là quy ước tổng hợp train, không phải xác suất hoặc điểm dự đoán. Trọng số cần được kiểm chứng khi huấn luyện.

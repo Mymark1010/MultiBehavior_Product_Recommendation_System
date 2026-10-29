@@ -1,0 +1,133 @@
+{
+  "schema_version": "2.0.0",
+  "task": "next_step",
+  "raw_events": 2756101,
+  "clean_events": 2755641,
+  "removed_events": 460,
+  "events_by_behavior": {
+    "view": 2664218,
+    "addtocart": 68966,
+    "transaction": 22457
+  },
+  "events_by_split": {
+    "train": 2204470,
+    "test": 275484,
+    "validation": 275359,
+    "boundary_drop": 328
+  },
+  "properties": {
+    "item_properties_part1.csv": {
+      "raw_rows": 10999999
+    },
+    "item_properties_part2.csv": {
+      "raw_rows": 9275903
+    }
+  },
+  "retained_property_rows": 2291853,
+  "catalog_items": 466868,
+  "train_users": 1123755,
+  "train_items": 212915,
+  "train_user_item_pairs": 1713144,
+  "sessions": 1761675,
+  "timestamp_groups": 2753015,
+  "queries": 991059,
+  "nextstep_target_pairs": 993336,
+  "queries_with_multiple_targets": 1836,
+  "target_pairs_repeating_prefix_item": 407653,
+  "negative_training_pairs": 0,
+  "negative_samples_per_query": 0,
+  "negative_sampling_shortfall_queries": 0,
+  "excluded_steps_by_reason": {
+    "no_next_group": 1761628,
+    "boundary_session": 328
+  },
+  "split_summary": {
+    "train": {
+      "queries": 806025,
+      "sessions": 306332,
+      "users": 253159,
+      "nextstep_target_pairs": 807908,
+      "unique_target_items": 104450,
+      "cold_user_query_pct": 0.0,
+      "cold_item_target_pct": 0.0,
+      "candidate_target_pair_coverage_pct": 82.2712487065359,
+      "macro_recall_candidate_ceiling_pct": 82.24445891876803,
+      "query_start": "2015-05-03 03:00:04.384000+00:00",
+      "query_end": "2015-08-18 04:22:35.266000+00:00"
+    },
+    "validation": {
+      "queries": 92566,
+      "sessions": 38290,
+      "users": 33425,
+      "nextstep_target_pairs": 92794,
+      "unique_target_items": 30822,
+      "cold_user_query_pct": 77.06501307175421,
+      "cold_item_target_pct": 5.3052999116322175,
+      "candidate_target_pair_coverage_pct": 79.90171778347738,
+      "macro_recall_candidate_ceiling_pct": 79.87666457806681,
+      "query_start": "2015-08-18 04:23:44.135000+00:00",
+      "query_end": "2015-09-02 17:48:27.375000+00:00"
+    },
+    "test": {
+      "queries": 92468,
+      "sessions": 37864,
+      "users": 33197,
+      "nextstep_target_pairs": 92634,
+      "unique_target_items": 30874,
+      "cold_user_query_pct": 83.59648743349051,
+      "cold_item_target_pct": 9.325949435412484,
+      "candidate_target_pair_coverage_pct": 79.1653172701168,
+      "macro_recall_candidate_ceiling_pct": 79.14377586480367,
+      "query_start": "2015-09-02 17:49:46.411000+00:00",
+      "query_end": "2015-09-18 02:57:55.667000+00:00"
+    }
+  },
+  "checks": {
+    "events_no_duplicates": true,
+    "events_required_non_null": true,
+    "transactions_have_id": true,
+    "valid_behavior_types": true,
+    "session_single_split": true,
+    "queries_unique": true,
+    "query_groups_unique": true,
+    "targets_unique": true,
+    "every_query_has_targets": true,
+    "targets_have_queries": true,
+    "targets_strictly_future": true,
+    "target_timestamps_match_query": true,
+    "targets_within_split": true,
+    "no_boundary_queries": true,
+    "targets_are_immediate_next_group": true,
+    "all_nonterminal_groups_have_queries": true,
+    "target_sets_match_all_behaviors": true,
+    "target_counts_match": true,
+    "history_not_future": true,
+    "feature_queries_match": true,
+    "features_contain_no_labels": true,
+    "user_mapping_valid": true,
+    "user_mapping_train_only": true,
+    "item_mapping_valid": true,
+    "item_mapping_train_only": true,
+    "interactions_unique": true,
+    "view_train_count_preserved": true,
+    "addtocart_train_count_preserved": true,
+    "transaction_train_count_preserved": true,
+    "properties_unique_keys": true,
+    "negatives_not_targets": true,
+    "negatives_train_only": true,
+    "negatives_unique": true,
+    "negative_items_in_train_vocabulary": true,
+    "independent_prefix_sample": true,
+    "available_no_future_metadata": true,
+    "category_id_no_future_metadata": true,
+    "negative_items_eligible_at_query": true
+  },
+  "limitations": [
+    "visitorid is anonymous, not a verified person",
+    "non-next items are not known dislikes",
+    "availability is last-observed, not guaranteed live stock",
+    "no exposure logs or causal conversion measurement",
+    "no training or model-quality claim; data preparation only",
+    "prefixes from one session are dependent; evaluate session/visitor aggregates too"
+  ]
+}

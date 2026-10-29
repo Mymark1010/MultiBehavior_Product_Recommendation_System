@@ -1,22 +1,30 @@
 """Read prepared datasets, observed history and point-in-time catalog entries."""
+import json
 from pathlib import Path
 
 import pandas as pd
 
-from scripts.prepare_multibehavior import lookup_metadata
+try:
+    from scripts.prepare_nextstep import lookup_metadata
+except ModuleNotFoundError:
+    from prepare_nextstep import lookup_metadata
 
 
 def require_complete(directory):
     directory = Path(directory)
     if not directory.is_dir() or (directory / "INCOMPLETE").exists():
-        raise RuntimeError("Dataset is missing or incomplete. Run scripts/prepare_multibehavior.py successfully first.")
+        raise RuntimeError("Dataset is missing or incomplete. Run scripts/prepare_nextstep.py successfully first.")
+    manifest_path = directory / "dataset_info.json"
+    info = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+    if info.get("task") != "next_step" or info.get("schema_version") != "2.0.0":
+        raise RuntimeError("Expected a schema-v2 next-step dataset")
     return directory
 
 
 def history_for_query(events, query):
-    """Return observed history; caller decides a maximum sequence length."""
+    """Return the observed session prefix, including the complete query bucket."""
     return events.loc[
-        events.visitorid.eq(query["visitorid"])
+        events.session_id.eq(query["session_id"])
         & events.event_time.le(query["query_time"])
         & events.split.ne("boundary_drop")
     ].sort_values(["event_time", "event_id"])

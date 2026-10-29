@@ -18,5 +18,5 @@ data/**
 dist/
 build/
 *.egg-info/
-reports/multibehavior/.running
+reports/nextstep/.running
 ~$*
