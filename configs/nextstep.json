@@ -1,0 +1,17 @@
+{
+  "task": "next_step",
+  "seed": 42,
+  "session_gap_minutes": 30,
+  "train_quantile": 0.8,
+  "validation_quantile": 0.9,
+  "property_chunk_rows": 1000000,
+  "interaction_weights": {
+    "view": 1.0,
+    "addtocart": 3.0,
+    "transaction": 5.0
+  },
+  "unknown_category_id": -1,
+  "padding_idx": 0,
+  "unknown_idx": 1,
+  "negative_samples_per_query": 0
+}

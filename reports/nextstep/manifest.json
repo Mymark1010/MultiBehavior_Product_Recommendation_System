@@ -1,0 +1,431 @@
+{
+  "schema_version": "2.0.0",
+  "task": "next_step",
+  "config": {
+    "task": "next_step",
+    "seed": 42,
+    "session_gap_minutes": 30,
+    "train_quantile": 0.8,
+    "validation_quantile": 0.9,
+    "property_chunk_rows": 1000000,
+    "interaction_weights": {
+      "view": 1.0,
+      "addtocart": 3.0,
+      "transaction": 5.0
+    },
+    "unknown_category_id": -1,
+    "padding_idx": 0,
+    "unknown_idx": 1,
+    "negative_samples_per_query": 0
+  },
+  "config_sha256": "8d0b5301f5a066f52a5666e7315577a81cfbba45ddb9a45d2e4100362de3d544",
+  "pipeline_sha256": "47781e806f118990505bcd6d7818948f33272d15920582e220050b849ba46cb5",
+  "reader_sha256": "d5d52d4e30bd1882bdee36d8045fb6b8eedc117909d9ee82a95f985c865ac520",
+  "cutoffs": {
+    "train_end": "2015-08-18 04:23:20.445000+00:00",
+    "validation_end": "2015-09-02 17:49:14.032000+00:00",
+    "observation_end": "2015-09-18 02:59:47.788000+00:00"
+  },
+  "raw_inputs": {
+    "events.csv": {
+      "bytes": 94237913,
+      "sha256": "3745aa83238b1e6d44d8fda209807899f420084398f94ddf745f3cbcfecbf9e7"
+    },
+    "item_properties_part1.csv": {
+      "bytes": 484315749,
+      "sha256": "30aad5aeca58b2dc27dcc73e1708565f5818e45adb3eb57401f91e87355b0b81"
+    },
+    "item_properties_part2.csv": {
+      "bytes": 408929907,
+      "sha256": "d5e7d1a91dc40f522aeb596b267e6c87d8aed689a7192d12369cfb165eb987e5"
+    },
+    "category_tree.csv": {
+      "bytes": 14454,
+      "sha256": "94e865eb0a3d48cbbfe3b79079018dd92509315c88f5fd8d00d0b4b5af434f5b"
+    }
+  },
+  "versions": {
+    "python": "3.12.14",
+    "pandas": "3.0.6",
+    "numpy": "2.5.3",
+    "pyarrow": "25.0.1"
+  },
+  "protocol": {
+    "query": "each non-terminal timestamp group of a non-boundary session",
+    "history": "same session, event_time <= query_time, all simultaneous events observed",
+    "targets": "distinct items of immediate next timestamp group, all three behaviors",
+    "candidate": "known_at <= query_time, available is 1 or unknown; repeat items allowed",
+    "model_parameters": "fit train only; validation selects; no test refit",
+    "reserved_indices": {
+      "PAD": 0,
+      "UNK": 1
+    },
+    "negative_sampling": "train only; not a candidate set for evaluation"
+  },
+  "artifacts": {
+    "events.parquet": {
+      "rows": 2755641,
+      "schema": {
+        "timestamp": "int64",
+        "visitorid": "int64",
+        "event": "large_string",
+        "itemid": "int64",
+        "transactionid": "int64",
+        "event_id": "int64",
+        "event_time": "timestamp[ns, tz=UTC]",
+        "session_id": "int64",
+        "event_order": "int32",
+        "split": "large_string",
+        "user_idx": "int32",
+        "item_idx": "int32"
+      },
+      "bytes": 98281940,
+      "sha256": "dc56738991ad2d0e0194ac6075a3b65a8ee3d05541cc1036f4262113aa836f14"
+    },
+    "user_mapping.parquet": {
+      "rows": 1123755,
+      "schema": {
+        "visitorid": "int64",
+        "user_idx": "int32"
+      },
+      "bytes": 10141936,
+      "sha256": "0bff29cd0d4cd36f0e504401cdd72d1e9db2ed9adccea66b4f2f24ebc25f798c"
+    },
+    "item_mapping.parquet": {
+      "rows": 212915,
+      "schema": {
+        "itemid": "int64",
+        "item_idx": "int32"
+      },
+      "bytes": 2433517,
+      "sha256": "8f8b0de26256a32295d88d8649d65f68e4f01b4b3f3d83564040ecaf9d1ece51"
+    },
+    "interactions_train.parquet": {
+      "rows": 1713144,
+      "schema": {
+        "visitorid": "int64",
+        "itemid": "int64",
+        "view": "int32",
+        "addtocart": "int32",
+        "transaction": "int32",
+        "interaction_score": "double",
+        "user_idx": "int32",
+        "item_idx": "int32",
+        "last_view_time": "timestamp[ns, tz=UTC]",
+        "view_recency_hours": "double",
+        "last_addtocart_time": "timestamp[ns, tz=UTC]",
+        "addtocart_recency_hours": "double",
+        "last_transaction_time": "timestamp[ns, tz=UTC]",
+        "transaction_recency_hours": "double"
+      },
+      "bytes": 54823641,
+      "sha256": "bcafd2a6b42b1629fa4ee46b60fdcf5fa7e576e73774e327d5bfe613c3111952"
+    },
+    "behavior_edges_train.parquet": {
+      "rows": 1769390,
+      "schema": {
+        "visitorid": "int64",
+        "itemid": "int64",
+        "event": "large_string",
+        "count": "int64",
+        "last_event_time": "timestamp[ns, tz=UTC]"
+      },
+      "bytes": 27624007,
+      "sha256": "1e245aa3e0eb4315288340c8ca3f9eb228b6d5e82f8e196cc8badc5604e61133"
+    },
+    "queries.parquet": {
+      "rows": 991059,
+      "schema": {
+        "session_id": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "visitorid": "int64",
+        "split": "large_string",
+        "query_id": "int64",
+        "target_time": "timestamp[ns, tz=UTC]",
+        "prefix_group_count": "int32",
+        "prefix_event_count": "int32",
+        "target_count": "int32",
+        "cold_user": "bool",
+        "user_idx": "int32",
+        "eligible_target_count": "int32"
+      },
+      "bytes": 28737805,
+      "sha256": "3dafc3e205eaec90235ae8c8784740fe1c2db55ed14c237988fb7a95348fcf7d"
+    },
+    "nextstep_targets.parquet": {
+      "rows": 993336,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "target_time": "timestamp[ns, tz=UTC]",
+        "target_event_count": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool",
+        "cold_item": "bool",
+        "item_idx": "int32"
+      },
+      "bytes": 24884285,
+      "sha256": "1f3a11ee2c984943c5fa6ac925b82b568b30938292a98672d1fbab0f94a0db97"
+    },
+    "query_features.parquet": {
+      "rows": 991059,
+      "schema": {
+        "query_id": "int64",
+        "session_id": "int64",
+        "visitorid": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "prefix_group_count": "int32",
+        "prefix_event_count": "int32",
+        "history_last_time": "timestamp[ns, tz=UTC]",
+        "view_count": "int32",
+        "last_view_time": "timestamp[ns, tz=UTC]",
+        "addtocart_count": "int32",
+        "last_addtocart_time": "timestamp[ns, tz=UTC]",
+        "transaction_count": "int32",
+        "last_transaction_time": "timestamp[ns, tz=UTC]",
+        "view_recency_seconds": "double",
+        "has_view_history": "bool",
+        "addtocart_recency_seconds": "double",
+        "has_addtocart_history": "bool",
+        "transaction_recency_seconds": "double",
+        "has_transaction_history": "bool"
+      },
+      "bytes": 37454963,
+      "sha256": "f6df0d30fcb3ce3134be8071ab1842f1ec6183bbfc36864849fa701f4fe5774f"
+    },
+    "excluded_steps.parquet": {
+      "rows": 1761956,
+      "schema": {
+        "session_id": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "visitorid": "int64",
+        "split": "large_string",
+        "group_event_count": "int64",
+        "query_id": "int64",
+        "target_time": "timestamp[ns, tz=UTC]",
+        "prefix_group_count": "int32",
+        "prefix_event_count": "int32",
+        "exclusion_reason": "large_string"
+      },
+      "bytes": 38286717,
+      "sha256": "e5686f711c230910f5b78ddeae9942bd132159627fab7876969401d129bb590e"
+    },
+    "property_history.parquet": {
+      "rows": 2291853,
+      "schema": {
+        "timestamp": "int64",
+        "itemid": "int64",
+        "property": "large_string",
+        "value": "large_string",
+        "property_time": "timestamp[ns, tz=UTC]",
+        "numeric_value": "int64",
+        "valid_to": "timestamp[ns, tz=UTC]"
+      },
+      "bytes": 9308810,
+      "sha256": "f93dc1fb456a5e8e5c699f0114b71a1cebcd6501e9d18c31ab68fdacc4d6cfd9"
+    },
+    "catalog.parquet": {
+      "rows": 466868,
+      "schema": {
+        "itemid": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool"
+      },
+      "bytes": 3606592,
+      "sha256": "5a7921a6955b8c07df0597d2515458849260eb90b6de2956cbee49fa07efe465"
+    },
+    "category_tree.parquet": {
+      "rows": 1669,
+      "schema": {
+        "categoryid": "int64",
+        "parentid": "int64",
+        "root_category_id": "int64",
+        "category_depth": "int64",
+        "category_path": "large_string"
+      },
+      "bytes": 34790,
+      "sha256": "4a3f05ea86e706a94ad4f32121d0ae70fa8b7a900a46b3e53ff99325ac2ba7f3"
+    },
+    "products_train_snapshot.parquet": {
+      "rows": 456974,
+      "schema": {
+        "itemid": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool"
+      },
+      "bytes": 6032383,
+      "sha256": "845d3f3ef14b208751ff49469f446352c16ab663f5ad9d236144f93aefa3cec2"
+    },
+    "negative_samples_train.parquet": {
+      "rows": 0,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "label": "int8",
+        "sampling_policy": "large_string"
+      },
+      "bytes": 2341,
+      "sha256": "d8ade4d6b79dab1c722df8b4af84e37ee48d084daca250070d7ddf0c51e19e26"
+    },
+    "splits/train_queries.parquet": {
+      "rows": 806025,
+      "schema": {
+        "session_id": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "visitorid": "int64",
+        "split": "large_string",
+        "query_id": "int64",
+        "target_time": "timestamp[ns, tz=UTC]",
+        "prefix_group_count": "int32",
+        "prefix_event_count": "int32",
+        "target_count": "int32",
+        "cold_user": "bool",
+        "user_idx": "int32",
+        "eligible_target_count": "int32"
+      },
+      "bytes": 23731025,
+      "sha256": "b9acb47eacca1202d2fe3b62b442567fec3add098f73a51400901626dd348da6"
+    },
+    "splits/train_targets.parquet": {
+      "rows": 807908,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "target_time": "timestamp[ns, tz=UTC]",
+        "target_event_count": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool",
+        "cold_item": "bool",
+        "item_idx": "int32"
+      },
+      "bytes": 20185684,
+      "sha256": "87f4765e18ecfcb6a530e8e0afcbb76d90aa1b658f0eb637bea19c3be68b4a48"
+    },
+    "splits/validation_queries.parquet": {
+      "rows": 92566,
+      "schema": {
+        "session_id": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "visitorid": "int64",
+        "split": "large_string",
+        "query_id": "int64",
+        "target_time": "timestamp[ns, tz=UTC]",
+        "prefix_group_count": "int32",
+        "prefix_event_count": "int32",
+        "target_count": "int32",
+        "cold_user": "bool",
+        "user_idx": "int32",
+        "eligible_target_count": "int32"
+      },
+      "bytes": 3136925,
+      "sha256": "748f68d2db1832de66577da1d1d65f0dacfd7a26111cdbb38992fec6be855cd6"
+    },
+    "splits/validation_targets.parquet": {
+      "rows": 92794,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "target_time": "timestamp[ns, tz=UTC]",
+        "target_event_count": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool",
+        "cold_item": "bool",
+        "item_idx": "int32"
+      },
+      "bytes": 2870954,
+      "sha256": "f38cc994449707350b9489058bfcdf554bbfe5a82fd2835efc2609118be2d157"
+    },
+    "splits/test_queries.parquet": {
+      "rows": 92468,
+      "schema": {
+        "session_id": "int64",
+        "query_time": "timestamp[ns, tz=UTC]",
+        "visitorid": "int64",
+        "split": "large_string",
+        "query_id": "int64",
+        "target_time": "timestamp[ns, tz=UTC]",
+        "prefix_group_count": "int32",
+        "prefix_event_count": "int32",
+        "target_count": "int32",
+        "cold_user": "bool",
+        "user_idx": "int32",
+        "eligible_target_count": "int32"
+      },
+      "bytes": 3134248,
+      "sha256": "ddcfa470e2dd032c6366687d2d9db48f738aac8608185570c48e6220db0823e7"
+    },
+    "splits/test_targets.parquet": {
+      "rows": 92634,
+      "schema": {
+        "query_id": "int64",
+        "itemid": "int64",
+        "target_time": "timestamp[ns, tz=UTC]",
+        "target_event_count": "int64",
+        "known_at": "timestamp[ns, tz=UTC]",
+        "seen_in_train": "bool",
+        "available_source_time": "timestamp[ns, tz=UTC]",
+        "available": "int8",
+        "category_id_source_time": "timestamp[ns, tz=UTC]",
+        "category_id": "int64",
+        "availability_unknown": "bool",
+        "category_missing": "bool",
+        "category_invalid": "bool",
+        "root_category_id": "int64",
+        "category_depth": "int16",
+        "category_path": "large_string",
+        "candidate_at_query": "bool",
+        "cold_item": "bool",
+        "item_idx": "int32"
+      },
+      "bytes": 2883207,
+      "sha256": "fe33bf4d5162a3d66b89fde855d8ca6c23793b460eedd609b7f3c1190d5a21c6"
+    }
+  },
+  "checks_passed": true,
+  "elapsed_seconds": 54.33
+}

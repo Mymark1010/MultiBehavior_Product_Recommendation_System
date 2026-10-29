@@ -1,5 +1,6 @@
 """Export the data-only report to an editable Word document."""
 from pathlib import Path
+import argparse
 import re
 
 from docx import Document
@@ -27,7 +28,7 @@ def inline(paragraph, text, size=None):
             run.font.size = Pt(10)
 
 
-def main():
+def build(source=SOURCE):
     doc = Document()
     section = doc.sections[0]
     section.page_width, section.page_height = Cm(21), Cm(29.7)
@@ -47,7 +48,7 @@ def main():
         style.font.color.rgb = RGBColor.from_string("194F59")
         style.paragraph_format.keep_with_next = True
     doc.styles["Caption"].font.size = Pt(10)
-    lines = SOURCE.read_text(encoding="utf-8").splitlines()
+    lines = source.read_text(encoding="utf-8").splitlines()
     index = 0
     while index < len(lines):
         line = lines[index].strip()
@@ -88,7 +89,7 @@ def main():
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.keep_with_next = True
-            p.add_run().add_picture(str((SOURCE.parent / picture[2]).resolve()), width=Cm(16.5))
+            p.add_run().add_picture(str((source.parent / picture[2]).resolve()), width=Cm(16.5))
             doc.add_paragraph(picture[1], style="Caption")
             continue
         heading = re.match(r"^(#{1,3}) (.*)$", line)
@@ -98,14 +99,20 @@ def main():
             inline(p, heading[2])
         else:
             inline(doc.add_paragraph(), line)
-    doc.core_properties.title = "Báo cáo xử lý dữ liệu Retailrocket"
+    doc.core_properties.title = "RetailRocket — next-step theo phiên"
     doc.core_properties.author = "Vũ Hải Minh"
-    doc.core_properties.subject = "Giai đoạn hoàn tất xử lý và kiểm tra dữ liệu"
-    output = SOURCE.with_suffix(".docx")
+    doc.core_properties.subject = "Dữ liệu và phương pháp cho gợi ý tương tác kế tiếp"
+    output = source.with_suffix(".docx")
     doc.save(output)
     check = Document(output)
-    assert len(check.tables) == 4 and len(check.inline_shapes) == 1
-    print(f"Created {output.name}; 4 tables and 1 chart.")
+    assert len(check.paragraphs) > 0
+    print(f"Created {output.name}; {len(check.tables)} tables.")
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source',type=Path,default=SOURCE)
+    build(parser.parse_args().source.resolve())
 
 
 if __name__ == "__main__":

@@ -1,0 +1,37 @@
+{
+  "task": "next_step",
+  "scope": "full_retailrocket_dataset",
+  "independent_sample_queries": 240,
+  "independent_sample_target_pairs": 243,
+  "sample_checks_passed": true,
+  "total_sessions": 1761675,
+  "single_timestamp_group_sessions": 1379142,
+  "single_timestamp_group_session_pct": 78.28583592319809,
+  "prefix_length_by_split": {
+    "test": {
+      "prefix_groups_min": 1,
+      "prefix_groups_median": 2.0,
+      "prefix_groups_p95": 24.0,
+      "prefix_groups_max": 274,
+      "multi_target_queries": 140
+    },
+    "train": {
+      "prefix_groups_min": 1,
+      "prefix_groups_median": 2.0,
+      "prefix_groups_p95": 28.0,
+      "prefix_groups_max": 416,
+      "multi_target_queries": 1519
+    },
+    "validation": {
+      "prefix_groups_min": 1,
+      "prefix_groups_median": 2.0,
+      "prefix_groups_p95": 21.0,
+      "prefix_groups_max": 236,
+      "multi_target_queries": 177
+    }
+  },
+  "limitations": [
+    "All query/target sets are checked by the pipeline; this separate feature/metadata audit is a deterministic sample, not an exhaustive independent audit.",
+    "No ranking model has been trained or evaluated."
+  ]
+}

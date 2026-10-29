@@ -1,0 +1,9 @@
+{
+  "python": "3.12.14",
+  "notebooks_executed": [
+    "01_data_audit.ipynb",
+    "02_nextstep_overview.ipynb",
+    "03_xem_du_lieu_parquet.ipynb"
+  ],
+  "all_cells_completed_without_error": true
+}

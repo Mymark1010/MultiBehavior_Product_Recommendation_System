@@ -1,6 +1,6 @@
-"""Build reproducible, time-aware multi-behavior recommendation datasets.
+"""Build timestamp-group next-step datasets for multi-behavior sessions.
 
-Run from any directory: python scripts/prepare_multibehavior.py --root PATH
+Run from any directory: python scripts/prepare_nextstep.py --root PATH
 The existing notebooks and their output directories are never overwritten.
 """
 from __future__ import annotations
@@ -46,10 +46,17 @@ def fingerprint(path):
 
 def clean_events(raw, config):
     """Preserve every distinct behavior; original row ID only breaks storage ties."""
+    missing = set(RAW_COLUMNS) - set(raw.columns)
+    if missing:
+        raise ValueError(f"Missing event columns: {sorted(missing)}")
     data = raw.copy()
     data["event_id"] = np.arange(len(data), dtype="int64")
     data = data[data.event.isin(BEHAVIORS)].dropna(subset=RAW_COLUMNS[:4])
     data = data.drop_duplicates(RAW_COLUMNS).copy()
+    if data.empty:
+        raise ValueError("No valid events after cleaning")
+    if data.loc[data.event.eq("transaction"), "transactionid"].isna().any():
+        raise ValueError("Transaction events require transactionid")
     for col in ("timestamp", "visitorid", "itemid"):
         data[col] = data[col].astype("int64")
     data["event_time"] = pd.to_datetime(data.timestamp, unit="ms", utc=True).astype("datetime64[ns, UTC]")
@@ -68,75 +75,67 @@ def clean_events(raw, config):
     return data, {"train_end": train_end, "validation_end": validation_end, "observation_end": data.event_time.max()}
 
 
-def create_queries(events, cutoffs, config):
-    """One query per session after its first timestamp bucket is observed.
+def create_queries(events):
+    """One prefix per non-terminal timestamp group, within the same session.
 
-    All events <= query_time are history; labels are strictly after it.
-    The unit is a query, NOT one row per target/history event.
+    Query IDs are deterministic for a fixed event set, independent of raw row
+    order inside a simultaneous group. Terminal and boundary groups are audited.
     """
-    usable = events[events.split.ne("boundary_drop")]
-    q = usable.groupby("session_id", sort=False).agg(
-        visitorid=("visitorid", "first"), query_time=("event_time", "min"), split=("split", "first")
-    ).reset_index().rename(columns={"session_id": "query_id"})
-    q["session_id"] = q.query_id
-    q["label_end"] = q.query_time + pd.Timedelta(days=config["label_horizon_days"])
-    ends = {"train": cutoffs["train_end"], "validation": cutoffs["validation_end"], "test": cutoffs["observation_end"]}
-    q["eligible"] = q.label_end.le(q.split.map(ends))
-    excluded = q[~q.eligible].copy()
-    excluded["exclusion_reason"] = "incomplete_label_window_within_split"
-    return q[q.eligible].drop(columns="eligible").reset_index(drop=True), excluded.drop(columns="eligible")
+    groups = events.groupby(["session_id", "event_time"], sort=True).agg(
+        visitorid=("visitorid", "first"), split=("split", "first"),
+        group_event_count=("event_id", "size")
+    ).reset_index().rename(columns={"event_time": "query_time"})
+    groups["query_id"] = np.arange(1, len(groups) + 1, dtype="int64")
+    session = groups.groupby("session_id", sort=False)
+    groups["target_time"] = session.query_time.shift(-1)
+    groups["prefix_group_count"] = (session.cumcount() + 1).astype("int32")
+    groups["prefix_event_count"] = session.group_event_count.cumsum().astype("int32")
+    valid = groups.target_time.notna() & groups.split.ne("boundary_drop")
+    excluded = groups.loc[~valid].copy()
+    excluded["exclusion_reason"] = np.where(
+        excluded.split.eq("boundary_drop"), "boundary_session", "no_next_group")
+    return (groups.loc[valid].drop(columns="group_event_count").reset_index(drop=True),
+            excluded.reset_index(drop=True))
 
 
 def create_targets(queries, events):
-    """Actual purchases in (query_time, label_end], with no synthetic funnel rows."""
-    purchases = events[events.event.eq("transaction") & events.split.ne("boundary_drop")]
-    joined = queries[["query_id", "visitorid", "query_time", "label_end", "split"]].merge(
-        purchases[["visitorid", "itemid", "event_time", "split"]], on=["visitorid", "split"], how="inner")
-    joined = joined[joined.event_time.gt(joined.query_time) & joined.event_time.le(joined.label_end)]
-    targets = joined.groupby(["query_id", "itemid"], sort=False).agg(
-        first_purchase_time=("event_time", "min"), purchase_event_count=("event_time", "size")
+    """All distinct items at the immediately following timestamp, any behavior."""
+    usable = events.loc[events.split.ne("boundary_drop"),
+                        ["session_id", "event_time", "itemid", "event_id"]]
+    joined = queries[["query_id", "session_id", "target_time"]].merge(
+        usable, left_on=["session_id", "target_time"],
+        right_on=["session_id", "event_time"], how="inner", validate="one_to_many")
+    targets = joined.groupby(["query_id", "itemid"], sort=True).agg(
+        target_time=("event_time", "first"), target_event_count=("event_id", "size")
     ).reset_index()
-    counts = targets.groupby("query_id").size()
     queries = queries.copy()
-    queries["target_count"] = queries.query_id.map(counts).fillna(0).astype("int32")
-    queries["has_purchase_target"] = queries.target_count.gt(0)
+    queries["target_count"] = queries.query_id.map(targets.groupby("query_id").size()).fillna(0).astype("int32")
     return queries, targets
 
 
-def build_user_features(queries, events, config):
-    """Vectorized cumulative/as-of counts; no future event can affect a query."""
-    # Labels and future-window metadata must never be exposed as model features.
-    queries = queries[["query_id", "visitorid", "query_time"]].copy()
-    queries["query_time"] = queries.query_time.astype("datetime64[ns, UTC]")
-    events = events[events.split.ne("boundary_drop")].sort_values(["visitorid", "event_time", "event_id"]).copy()
-    events["event_time"] = events.event_time.astype("datetime64[ns, UTC]")
-    count_cols = []
-    last_cols = []
+def build_prefix_features(queries, events):
+    """Session-local observed counts/recency; future groups never enter features."""
+    result = queries[["query_id", "session_id", "visitorid", "query_time",
+                      "prefix_group_count", "prefix_event_count"]].copy()
+    observed = events.loc[events.split.ne("boundary_drop")].sort_values(
+        ["session_id", "event_time", "event_id"]).copy()
+    cols = []
     for behavior in BEHAVIORS:
         count, last = f"{behavior}_count", f"last_{behavior}_time"
-        flag = events.event.eq(behavior)
-        events[count] = flag.groupby(events.visitorid, sort=False).cumsum().astype("int32")
-        events[last] = events.event_time.where(flag).groupby(events.visitorid, sort=False).ffill()
-        count_cols.append(count)
-        last_cols.append(last)
-    # All simultaneous events are observed together: use the state after the entire bucket.
-    states = events.drop_duplicates(["visitorid", "event_time"], keep="last")
-    states = states[["visitorid", "event_time"] + count_cols + last_cols].sort_values("event_time")
-    result = pd.merge_asof(queries.sort_values("query_time"), states,
-                          left_on="query_time", right_on="event_time", by="visitorid", direction="backward")
+        flag = observed.event.eq(behavior)
+        observed[count] = flag.groupby(observed.session_id, sort=False).cumsum().astype("int32")
+        observed[last] = observed.event_time.where(flag).groupby(observed.session_id, sort=False).ffill()
+        cols.extend([count, last])
+    # Keep the state AFTER every event in the timestamp group, not an arbitrary
+    # within-group prefix. Exact join prevents accidentally including another session.
+    states = observed.drop_duplicates(["session_id", "event_time"], keep="last")
+    result = result.merge(states[["session_id", "event_time"] + cols],
+                          left_on=["session_id", "query_time"],
+                          right_on=["session_id", "event_time"], how="left", validate="many_to_one")
     result = result.rename(columns={"event_time": "history_last_time"})
-    for days in config["feature_windows_days"]:
-        left = queries[["query_id", "visitorid", "query_time"]].copy()
-        left["window_start"] = left.query_time - pd.Timedelta(days=days)
-        before = pd.merge_asof(left.sort_values("window_start"), states[["visitorid", "event_time"] + count_cols],
-                               left_on="window_start", right_on="event_time", by="visitorid", direction="backward")
-        before = before.set_index("query_id")
-        for behavior in BEHAVIORS:
-            col = f"{behavior}_count"
-            result[f"{col}_{days}d"] = (result[col] - result.query_id.map(before[col]).fillna(0)).astype("int32")
     for behavior in BEHAVIORS:
         last = f"last_{behavior}_time"
-        result[f"{behavior}_recency_hours"] = (result.query_time - result[last]).dt.total_seconds() / 3600
+        result[f"{behavior}_recency_seconds"] = (result.query_time - result[last]).dt.total_seconds()
         result[f"has_{behavior}_history"] = result[last].notna()
     return result.sort_values("query_id").reset_index(drop=True)
 
@@ -241,15 +240,17 @@ def train_tables(events, cutoffs, config):
 
 
 def sample_train_negatives(queries, targets, items, properties, catalog, tree, config):
-    """Optional pairwise examples: train-only, exact-time catalog filtering.
+    """Optional train negatives: eligible items absent from the entire next group.
 
-    Viewed/carted items are allowed; a sampled negative is unpurchased in the
-    horizon, NOT a known dislike. Evaluation never uses these samples.
+    Not observed next does not mean dislike. Never use these for evaluation.
     """
-    positive_q = queries[queries.split.eq("train") & queries.has_purchase_target]
-    k = config["negative_samples_per_positive_query"]
+    positive_q = queries[queries.split.eq("train")].sort_values("query_id")
+    k = config["negative_samples_per_query"]
     if positive_q.empty or k == 0:
-        return pd.DataFrame(columns=["query_id", "itemid", "label", "sampling_policy"])
+        return pd.DataFrame({"query_id": pd.Series(dtype="int64"),
+                             "itemid": pd.Series(dtype="int64"),
+                             "label": pd.Series(dtype="int8"),
+                             "sampling_policy": pd.Series(dtype="string")})
     rng = np.random.default_rng(config["seed"])
     wanted = positive_q[["query_id", "query_time"]]
     collected = pd.DataFrame(columns=["query_id", "itemid"])
@@ -289,7 +290,7 @@ def sample_train_negatives(queries, targets, items, properties, catalog, tree, c
         collected = pd.concat([collected, pd.DataFrame(extras, columns=["query_id", "itemid"])], ignore_index=True)
     collected = collected.astype({"query_id": "int64", "itemid": "int64"})
     collected["label"] = np.int8(0)
-    collected["sampling_policy"] = "uniform_train_items_eligible_at_query_unpurchased_in_horizon"
+    collected["sampling_policy"] = "uniform_train_items_eligible_at_query_not_in_next_group"
     return collected.sort_values(["query_id", "itemid"]).reset_index(drop=True)
 
 
@@ -303,65 +304,81 @@ def validate(events, queries, targets, features, properties, users, items, inter
 
     check("events_no_duplicates", not events.duplicated(RAW_COLUMNS).any())
     check("events_required_non_null", not events[RAW_COLUMNS[:4] + ["event_time", "session_id"]].isna().any().any())
-    check("purchases_have_transaction_id", events.loc[events.event.eq("transaction"), "transactionid"].notna().all())
+    check("transactions_have_id", events.loc[events.event.eq("transaction"), "transactionid"].notna().all())
     check("valid_behavior_types", events.event.isin(BEHAVIORS).all())
-    check("session_single_split", events.groupby("session_id").split.nunique().max() == 1)
+    check("session_single_split", events.groupby("session_id").split.nunique().le(1).all())
     check("queries_unique", queries.query_id.is_unique)
+    check("query_groups_unique", not queries.duplicated(["session_id", "query_time"]).any())
     check("targets_unique", not targets.duplicated(["query_id", "itemid"]).any())
-    joined = targets.merge(queries[["query_id", "query_time", "label_end", "split"]], on="query_id", validate="many_to_one")
-    check("labels_strictly_future", joined.first_purchase_time.gt(joined.query_time).all())
-    check("labels_within_horizon", joined.first_purchase_time.le(joined.label_end).all())
+    check("every_query_has_targets", queries.target_count.gt(0).all())
+    check("targets_have_queries", targets.query_id.isin(queries.query_id).all())
+    check("targets_strictly_future", queries.target_time.gt(queries.query_time).all())
+    target_times = targets.merge(queries[["query_id", "target_time"]], on="query_id", suffixes=("", "_query"), validate="many_to_one")
+    check("target_timestamps_match_query", target_times.target_time.eq(target_times.target_time_query).all())
     ends = {"train": cutoffs["train_end"], "validation": cutoffs["validation_end"], "test": cutoffs["observation_end"]}
-    check("label_windows_within_split", queries.label_end.le(queries.split.map(ends)).all())
+    check("targets_within_split", queries.target_time.le(queries.split.map(ends)).all())
+    check("no_boundary_queries", not queries.split.eq("boundary_drop").any())
+    # Independent next-time lookup from sorted distinct timestamps.
+    times = events.loc[events.split.ne("boundary_drop"), ["session_id", "event_time"]].drop_duplicates().sort_values(["session_id", "event_time"])
+    times["next_time"] = times.groupby("session_id").event_time.shift(-1)
+    expected = queries.merge(times, left_on=["session_id", "query_time"], right_on=["session_id", "event_time"], how="left", validate="one_to_one")
+    check("targets_are_immediate_next_group", expected.next_time.eq(expected.target_time).all())
+    check("all_nonterminal_groups_have_queries", len(queries) == int(times.next_time.notna().sum()))
+    label_events = queries[["query_id", "session_id", "target_time"]].merge(
+        events[["session_id", "event_time", "itemid"]],
+        left_on=["session_id", "target_time"], right_on=["session_id", "event_time"], how="inner")
+    expected_pairs = label_events[["query_id", "itemid"]].drop_duplicates()
+    comparison = expected_pairs.merge(targets[["query_id", "itemid"]], on=["query_id", "itemid"], how="outer", indicator=True)
+    check("target_sets_match_all_behaviors", comparison._merge.eq("both").all())
+    check("target_counts_match", queries.set_index("query_id").target_count.eq(targets.groupby("query_id").size()).all())
     check("history_not_future", features.history_last_time.notna().all() and features.history_last_time.le(features.query_time).all())
     check("feature_queries_match", features.query_id.is_unique and set(features.query_id) == set(queries.query_id))
-    check("features_contain_no_labels", not set(features.columns).intersection({"label_end", "target_count", "has_purchase_target", "eligible_target_count"}))
-    check("target_count_matches", queries.target_count.sum() == len(targets))
-    check("no_boundary_queries", not queries.split.eq("boundary_drop").any())
+    check("features_contain_no_labels", not set(features.columns).intersection({"target_time", "target_count", "eligible_target_count"}))
+    train = events[events.split.eq("train")]
     for name, mapping, key in [("user", users, "visitorid"), ("item", items, "itemid")]:
         check(f"{name}_mapping_valid", mapping[key].is_unique and np.array_equal(mapping[f"{name}_idx"], np.arange(2, len(mapping) + 2)))
+        check(f"{name}_mapping_train_only", set(mapping[key]) == set(train[key]))
     check("interactions_unique", not interactions.duplicated(["visitorid", "itemid"]).any())
-    train = events[events.split.eq("train")]
     for behavior in BEHAVIORS:
         check(f"{behavior}_train_count_preserved", int(interactions[behavior].sum()) == int(train.event.eq(behavior).sum()))
     check("properties_unique_keys", not properties.duplicated(["itemid", "property", "property_time"]).any())
-    check("negatives_not_positive", negatives.merge(targets[["query_id", "itemid"]], on=["query_id", "itemid"]).empty)
+    check("negatives_not_targets", negatives.merge(targets[["query_id", "itemid"]], on=["query_id", "itemid"]).empty)
     check("negatives_train_only", negatives.query_id.isin(queries.loc[queries.split.eq("train"), "query_id"]).all())
     check("negatives_unique", not negatives.duplicated(["query_id", "itemid"]).any())
-    # Independently recompute a deterministic sample of features from raw histories.
-    sampled = features.sample(min(100, len(features)), random_state=42)
-    relevant = events[events.visitorid.isin(sampled.visitorid) & events.split.ne("boundary_drop")]
-    for row in sampled.itertuples():
-        history = relevant[relevant.visitorid.eq(row.visitorid) & relevant.event_time.le(row.query_time)]
+    check("negative_items_in_train_vocabulary", negatives.itemid.isin(items.itemid).all())
+    for row in features.sample(min(100, len(features)), random_state=42).itertuples():
+        history = events[events.session_id.eq(row.session_id) & events.event_time.le(row.query_time)]
+        if len(history) != row.prefix_event_count or history.event_time.nunique() != row.prefix_group_count:
+            raise AssertionError("Independent prefix length mismatch")
         for behavior in BEHAVIORS:
             subset = history[history.event.eq(behavior)]
             if len(subset) != getattr(row, f"{behavior}_count"):
-                raise AssertionError("Independent history count mismatch")
-            for days in (7, 30):
-                name = f"{behavior}_count_{days}d"
-                if hasattr(row, name) and int(subset.event_time.gt(row.query_time - pd.Timedelta(days=days)).sum()) != getattr(row, name):
-                    raise AssertionError("Independent rolling feature mismatch")
-    checks["independent_feature_sample"] = True
+                raise AssertionError("Independent session-local count mismatch")
+    checks["independent_prefix_sample"] = True
     return checks
 
 
 def run(root, config_path):
     started = time.monotonic()
+    root, config_path = Path(root).resolve(), Path(config_path).resolve()
     config = json.loads(config_path.read_text(encoding="utf-8"))
+    if config.get("task") != "next_step":
+        raise ValueError("Configuration must select task=next_step")
     if not 0 < config["train_quantile"] < config["validation_quantile"] < 1:
         raise ValueError("Invalid split quantiles")
-    if config["label_horizon_days"] <= 0:
-        raise ValueError("Label horizon must be positive")
+    if config["session_gap_minutes"] <= 0 or config["negative_samples_per_query"] < 0:
+        raise ValueError("Invalid session gap or negative sample count")
+    if not isinstance(config["negative_samples_per_query"], int) or config["property_chunk_rows"] <= 0:
+        raise ValueError("Negative sample count must be an integer and property_chunk_rows must be positive")
     if (config["padding_idx"], config["unknown_idx"]) != (0, 1):
-        raise ValueError("Schema v1 reserves PAD=0 and UNK=1")
-    raw_dir, output, report_dir = root / "data/raw", root / "data/multibehavior", root / "reports/multibehavior"
+        raise ValueError("Schema v2 reserves PAD=0 and UNK=1")
+    raw_dir, output, report_dir = root / "data/raw", root / "data/nextstep", root / "reports/nextstep"
     required = [raw_dir / n for n in ["events.csv", "item_properties_part1.csv", "item_properties_part2.csv", "category_tree.csv"]]
     for path in required:
         if not path.is_file():
             raise FileNotFoundError(f"Missing raw input: {path}. See data/README.md")
     output.mkdir(parents=True, exist_ok=True)
     report_dir.mkdir(parents=True, exist_ok=True)
-    # Consumers must reject artifacts while a run is in progress or failed.
     marker = output / "INCOMPLETE"
     marker.write_text("Do not consume outputs until this marker is removed.\n", encoding="utf-8")
     log("Reading and cleaning raw events")
@@ -369,120 +386,117 @@ def run(root, config_path):
     raw_count = len(raw)
     events, cutoffs = clean_events(raw, config)
     del raw
-    log(f"Retained {len(events):,} events; cutoffs: {cutoffs}")
+    if events.empty:
+        raise ValueError("No valid events")
     users, items, interactions, edges = train_tables(events, cutoffs, config)
     events = events.merge(users, on="visitorid", how="left", validate="many_to_one").merge(items, on="itemid", how="left", validate="many_to_one")
     for col in ("user_idx", "item_idx"):
         events[col] = events[col].fillna(config["unknown_idx"]).astype("int32")
-    save(events, output, "events")
-    save(users, output, "user_mapping")
-    save(items, output, "item_mapping")
-    save(interactions, output, "interactions_train")
-    save(edges, output, "behavior_edges_train")
-    log("Building independent session queries and seven-day purchase labels")
-    queries, excluded = create_queries(events, cutoffs, config)
+    tables = {"events": events, "user_mapping": users, "item_mapping": items,
+              "interactions_train": interactions, "behavior_edges_train": edges}
+    queries, excluded = create_queries(events)
     queries, targets = create_targets(queries, events)
+    if queries.empty:
+        raise ValueError("No next-step samples: need a non-boundary session with at least two timestamp groups")
     queries["cold_user"] = ~queries.visitorid.isin(users.visitorid)
     queries["user_idx"] = queries.visitorid.map(users.set_index("visitorid").user_idx).fillna(config["unknown_idx"]).astype("int32")
-    save(excluded, output, "excluded_queries")
-    log(f"Queries: {len(queries):,}; targets: {len(targets):,}; computing time-aware history features")
-    features = build_user_features(queries, events, config)
-    save(features, output, "query_features")
-    log("Reading raw product history and checking category hierarchy")
+    features = build_prefix_features(queries, events)
+    log(f"Next-step queries: {len(queries):,}; target pairs: {len(targets):,}")
+    log("Reading property history and building time-aware catalog")
     properties, property_stats = read_properties(raw_dir, config)
     tree = build_category_tree(pd.read_csv(required[3], dtype={"categoryid": "Int64", "parentid": "Int64"}))
     catalog = build_catalog(events, properties)
     catalog["seen_in_train"] = catalog.itemid.isin(items.itemid)
-    save(properties, output, "property_history")
-    save(catalog, output, "catalog")
-    save(tree, output, "category_tree")
     requests = catalog.loc[catalog.known_at.le(cutoffs["train_end"]), ["itemid"]].assign(query_time=cutoffs["train_end"])
     snapshot = lookup_metadata(requests, properties, catalog, tree, config)
-    save(snapshot, output, "products_train_snapshot")
     target_requests = targets.merge(queries[["query_id", "query_time"]], on="query_id", validate="many_to_one")
     targets = lookup_metadata(target_requests, properties, catalog, tree, config).drop(columns="query_time")
     targets["cold_item"] = ~targets.itemid.isin(items.itemid)
     targets["item_idx"] = targets.itemid.map(items.set_index("itemid").item_idx).fillna(config["unknown_idx"]).astype("int32")
-    candidates_per_query = targets.groupby("query_id").candidate_at_query.sum()
-    queries["eligible_target_count"] = queries.query_id.map(candidates_per_query).fillna(0).astype("int32")
-    log("Sampling optional training negatives (evaluation remains full-catalog)")
+    queries["eligible_target_count"] = queries.query_id.map(targets.groupby("query_id").candidate_at_query.sum()).fillna(0).astype("int32")
     negatives = sample_train_negatives(queries, targets, items, properties, catalog, tree, config)
-    save(negatives, output, "negative_samples_train")
-    save(queries, output, "queries")
-    save(targets, output, "purchase_targets")
+    log("Validating complete next-step target sets, prefixes and temporal metadata")
+    checks = validate(events, queries, targets, features, properties, users, items, interactions, negatives, cutoffs)
+    joined = targets.merge(queries[["query_id", "query_time"]], on="query_id", validate="many_to_one")
+    for prop in ("available", "category_id"):
+        checks[f"{prop}_no_future_metadata"] = bool((joined[f"{prop}_source_time"].isna() | joined[f"{prop}_source_time"].le(joined.query_time)).all())
+    negative_requests = negatives[["query_id", "itemid"]].astype({"query_id": "int64", "itemid": "int64"}).merge(queries[["query_id", "query_time"]], on="query_id", validate="many_to_one")
+    checks["negative_items_eligible_at_query"] = bool(lookup_metadata(negative_requests, properties, catalog, tree, config).candidate_at_query.all())
+    if not all(checks.values()):
+        raise AssertionError("Metadata temporal checks failed")
+    tables.update({"queries": queries, "nextstep_targets": targets, "query_features": features,
+                   "excluded_steps": excluded, "property_history": properties, "catalog": catalog,
+                   "category_tree": tree, "products_train_snapshot": snapshot, "negative_samples_train": negatives})
+    for name, frame in tables.items():
+        save(frame, output, name)
+        log(f"Saved {name}: {len(frame):,} rows")
     for split in ("train", "validation", "test"):
         part = queries[queries.split.eq(split)]
         save(part, output / "splits", f"{split}_queries")
         save(targets[targets.query_id.isin(part.query_id)], output / "splits", f"{split}_targets")
-    log("Running integrity, temporal-leakage and independent history checks")
-    checks = validate(events, queries, targets, features, properties, users, items, interactions, negatives, cutoffs)
-    for prop in ("available", "category_id"):
-        joined = targets.merge(queries[["query_id", "query_time"]], on="query_id", validate="many_to_one")
-        checks[f"{prop}_no_future_metadata"] = bool((joined[f"{prop}_source_time"].isna() | joined[f"{prop}_source_time"].le(joined.query_time)).all())
-    negative_requests = negatives[["query_id", "itemid"]].merge(queries[["query_id", "query_time"]], on="query_id", validate="many_to_one")
-    negative_metadata = lookup_metadata(negative_requests, properties, catalog, tree, config)
-    checks["negative_items_eligible_at_query"] = bool(negative_metadata.candidate_at_query.all())
-    if not all(checks.values()):
-        raise AssertionError("Metadata temporal checks failed")
+    def pct(series):
+        return float(series.mean() * 100) if len(series) else None
     split_summary = {}
     for split in ("train", "validation", "test"):
         q = queries[queries.split.eq(split)]
         t = targets[targets.query_id.isin(q.query_id)]
-        positive = q[q.has_purchase_target]
         split_summary[split] = {
-            "queries": len(q), "users": int(q.visitorid.nunique()), "queries_with_purchase": int(q.has_purchase_target.sum()),
-            "queries_without_purchase": int((~q.has_purchase_target).sum()), "purchase_target_pairs": len(t),
-            "unique_purchase_items": int(t.itemid.nunique()), "cold_user_query_pct": float(q.cold_user.mean() * 100),
-            "cold_item_target_pct": float(t.cold_item.mean() * 100),
-            "candidate_target_pair_coverage_pct": float(t.candidate_at_query.mean() * 100),
-            "macro_recall_candidate_ceiling_pct": float((positive.eligible_target_count / positive.target_count).mean() * 100),
-            "queries_excluded_incomplete_horizon": int(excluded.split.eq(split).sum()),
-            "query_start": q.query_time.min(), "query_end": q.query_time.max()
-        }
-    snapshot_train = snapshot[snapshot.seen_in_train]
+            "queries": len(q), "sessions": int(q.session_id.nunique()), "users": int(q.visitorid.nunique()),
+            "nextstep_target_pairs": len(t), "unique_target_items": int(t.itemid.nunique()),
+            "cold_user_query_pct": pct(q.cold_user), "cold_item_target_pct": pct(t.cold_item),
+            "candidate_target_pair_coverage_pct": pct(t.candidate_at_query),
+            "macro_recall_candidate_ceiling_pct": pct(q.eligible_target_count / q.target_count),
+            "query_start": q.query_time.min() if len(q) else None,
+            "query_end": q.query_time.max() if len(q) else None}
     summary = {
-        "raw_events": raw_count, "clean_events": len(events), "removed_events": raw_count - len(events),
+        "schema_version": "2.0.0", "task": "next_step", "raw_events": raw_count,
+        "clean_events": len(events), "removed_events": raw_count - len(events),
         "events_by_behavior": events.event.value_counts().to_dict(), "events_by_split": events.split.value_counts().to_dict(),
         "properties": property_stats, "retained_property_rows": len(properties), "catalog_items": len(catalog),
         "train_users": len(users), "train_items": len(items), "train_user_item_pairs": len(interactions),
-        "negative_training_pairs": len(negatives), "train_category_unknown_pct": float(snapshot_train.category_id.eq(-1).mean() * 100),
-        "negative_sampling_shortfall_queries": int((queries.loc[queries.split.eq("train") & queries.has_purchase_target, "query_id"].map(negatives.groupby("query_id").size()).fillna(0) < config["negative_samples_per_positive_query"]).sum()),
-        "train_availability_unknown_pct": float(snapshot_train.availability_unknown.mean() * 100),
+        "sessions": int(events.session_id.nunique()),
+        "timestamp_groups": int(events[["session_id", "event_time"]].drop_duplicates().shape[0]),
+        "queries": len(queries), "nextstep_target_pairs": len(targets),
+        "queries_with_multiple_targets": int(queries.target_count.gt(1).sum()),
+        "target_pairs_repeating_prefix_item": int(targets[["query_id", "itemid"]].merge(
+            queries[["query_id", "session_id", "query_time"]], on="query_id").merge(
+            events.groupby(["session_id", "itemid"]).event_time.min().rename("first_seen_in_session").reset_index(),
+            on=["session_id", "itemid"], validate="many_to_one").eval("first_seen_in_session <= query_time").sum()),
+        "negative_training_pairs": len(negatives), "negative_samples_per_query": config["negative_samples_per_query"],
+        "negative_sampling_shortfall_queries": int((queries.loc[queries.split.eq("train"), "query_id"].map(negatives.groupby("query_id").size()).fillna(0) < config["negative_samples_per_query"]).sum()),
+        "excluded_steps_by_reason": excluded.exclusion_reason.value_counts().to_dict(),
         "split_summary": split_summary, "checks": checks,
-        "limitations": ["visitorid is an anonymous visitor, not a verified person", "absence of purchase is not known dislike",
-                        "availability is last-observed state, not guaranteed live stock", "no exposure logs or causal conversion measurement",
-                        "no training or model-quality claim; offline data readiness only",
-                        "overlapping queries can share future purchases; report query metrics and user-macro metrics",
-                        "cold rates here use purchase queries and differ from legacy next-item evaluation"]
-    }
+        "limitations": ["visitorid is anonymous, not a verified person", "non-next items are not known dislikes",
+                        "availability is last-observed, not guaranteed live stock", "no exposure logs or causal conversion measurement",
+                        "no training or model-quality claim; data preparation only",
+                        "prefixes from one session are dependent; evaluate session/visitor aggregates too"]}
     write_json(report_dir / "summary.json", summary)
-    artifacts = {}
-    for path in sorted(output.rglob("*.parquet")):
-        metadata = pq.read_metadata(path)
-        artifacts[str(path.relative_to(output)).replace("\\", "/")] = {
-            "rows": metadata.num_rows,
-            "schema": {field.name: str(field.type) for field in pq.read_schema(path)},
-            **fingerprint(path)
-        }
+    # Manifest contains exactly this run's managed outputs; unrelated stale files
+    # must never be silently certified as next-step artifacts.
+    paths = [output / f"{n}.parquet" for n in tables]
+    paths += [output / "splits" / f"{sp}_{kind}.parquet" for sp in ("train", "validation", "test") for kind in ("queries", "targets")]
+    artifacts = {str(p.relative_to(output)): {"rows": pq.read_metadata(p).num_rows,
+                 "schema": {f.name: str(f.type) for f in pq.read_schema(p)}, **fingerprint(p)} for p in paths}
     manifest = {
-        "schema_version": "1.0.0", "config": config, "config_sha256": fingerprint(config_path)["sha256"],
+        "schema_version": "2.0.0", "task": "next_step", "config": config,
+        "config_sha256": fingerprint(config_path)["sha256"],
         "pipeline_sha256": fingerprint(Path(__file__))["sha256"],
+        "reader_sha256": fingerprint(Path(__file__).with_name("dataset.py"))["sha256"],
         "cutoffs": cutoffs, "raw_inputs": {p.name: fingerprint(p) for p in required},
         "versions": {"python": platform.python_version(), "pandas": pd.__version__, "numpy": np.__version__, "pyarrow": pyarrow.__version__},
-        "protocol": {"query": "after all events at first timestamp of each non-boundary session", "history": "non-boundary events <= query_time",
-                     "targets": f"distinct purchased items in (query_time, query_time + {config['label_horizon_days']} days], fully inside split",
-                     "catalog_known_at": "first observed category/availability property or event",
-                     "candidate": "known_at <= query_time and last observed availability != 0; unknown allowed",
-                     "model_parameters": "fit train only; validation selects hyperparameters; no test refit",
-                     "online_history": "past validation/test events may update history without fitting model parameters",
-                     "reserved_indices": {"PAD": 0, "UNK": 1}, "negative_sampling": "train only; not used for evaluation"},
-        "artifacts": artifacts, "checks_passed": all(checks.values()), "elapsed_seconds": round(time.monotonic() - started, 2)
-    }
+        "protocol": {"query": "each non-terminal timestamp group of a non-boundary session",
+                     "history": "same session, event_time <= query_time, all simultaneous events observed",
+                     "targets": "distinct items of immediate next timestamp group, all three behaviors",
+                     "candidate": "known_at <= query_time, available is 1 or unknown; repeat items allowed",
+                     "model_parameters": "fit train only; validation selects; no test refit",
+                     "reserved_indices": {"PAD": 0, "UNK": 1}, "negative_sampling": "train only; not a candidate set for evaluation"},
+        "artifacts": artifacts, "checks_passed": all(checks.values()), "elapsed_seconds": round(time.monotonic() - started, 2)}
     write_json(report_dir / "manifest.json", manifest)
+    write_json(output / "dataset_info.json", {"task": "next_step", "schema_version": "2.0.0"})
     marker.unlink()
-    log(json.dumps(split_summary, indent=2, default=str))
-    log(f"DONE: {len(checks)} checks passed, {len(artifacts)} artifacts, {manifest['elapsed_seconds']} seconds")
+    log(f"DONE: {len(checks)} checks, {len(artifacts)} artifacts")
     gc.collect()
+    return summary, manifest
 
 
 def main():
@@ -491,7 +505,7 @@ def main():
     parser.add_argument("--config", type=Path)
     args = parser.parse_args()
     root = args.root.resolve()
-    run(root, args.config or root / "configs/multibehavior.json")
+    run(root, args.config or root / "configs/nextstep.json")
 
 
 if __name__ == "__main__":

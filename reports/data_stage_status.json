@@ -1,14 +1,14 @@
 {
-  "date": "2026-10-22",
-  "stage": "data_processing_complete",
-  "unit_tests_passed": 11,
-  "verified_parquet_artifacts": 20,
-  "raw_config_pipeline_and_artifacts_match_manifest": true,
-  "pipeline_config_and_manifest_unchanged": true,
-  "data_rebuilt_during_reset": false,
-  "data_pipeline_sha256": "9af99fe599f46672d36daf8be5b12ade20976c9bffe470fde349d5863cd2f02e",
-  "data_config_sha256": "e2f8e5119132b740c9b53073870bb18b630acbb376053df6790ff2dc4cdd9245",
-  "data_manifest_sha256": "852870c8bd166c619ccc02688a1c5e4e1b4ac3d9e08ea6984d57fe6694670e00",
-  "data_report": "docs\\BAO_CAO_XU_LY_DU_LIEU_VI.docx",
-  "broken_current_document_links": 0
+  "date": "2026-10-29",
+  "task": "next_step",
+  "schema_version": "2.0.0",
+  "stage": "full_data_pipeline_verified",
+  "full_dataset_rebuilt": true,
+  "full_dataset_verified": true,
+  "unit_tests_passed": 30,
+  "parquet_artifacts_verified": 20,
+  "pipeline_checks_passed": 38,
+  "model_training_complete": false,
+  "demo_implemented": false,
+  "evidence": "reports/nextstep/validation.json"
 }
