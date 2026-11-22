@@ -29,7 +29,7 @@ def distribution(values):
 def audit():
     paths = [ROOT / 'data/processed' / name for name in
              ['sessions.parquet', 'timestamp_groups.parquet', 'events_sessionized.parquet', 'split_config.json']]
-    fingerprints = {str(p.relative_to(ROOT)): fingerprint(p) for p in paths}
+    fingerprints = {p.relative_to(ROOT).as_posix(): fingerprint(p) for p in paths}
     sessions = pd.read_parquet(paths[0])
     groups = pd.read_parquet(paths[1], columns=['session_id','group_id','group_index','n_items','n_events','split'])
     events = pd.read_parquet(paths[2], columns=['session_id','group_id','group_index','itemid','event','split'])
@@ -146,10 +146,10 @@ def audit():
         'possible_next_view_group_queries':int((views-1).clip(lower=0).sum()),
     }
     for p in paths:
-        assert fingerprint(p)==fingerprints[str(p.relative_to(ROOT))], 'Input changed during audit'
+        assert fingerprint(p)==fingerprints[p.relative_to(ROOT).as_posix()], 'Input changed during audit'
     result['inputs_unchanged']=True
     OUT.mkdir(parents=True,exist_ok=True)
-    (OUT/'metrics.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
+    (OUT/'metrics.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
     print(json.dumps(result,ensure_ascii=False,indent=2))
 
 if __name__=='__main__':
