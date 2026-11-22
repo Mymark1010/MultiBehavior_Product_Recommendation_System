@@ -1,22 +1,22 @@
-# Local data and credentials must never be committed.
-.venv/
-.tools/
-.env
-.env.*
-!.env.example
+# Large raw & processed datasets (exceed GitHub file limits; reproducible via notebooks)
+data/raw/*.csv
+data/processed/**/*.parquet
+*.parquet
+
+# Python & Jupyter
 __pycache__/
 *.py[cod]
-.pytest_cache/
+*$py.class
 .ipynb_checkpoints/
-data/**
-!data/README.md
-*.log
-*.tmp
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# OS & Editor
 .DS_Store
-.idea/
+Thumbs.db
 .vscode/
-dist/
-build/
-*.egg-info/
-reports/nextstep/.running
-~$*
+.idea/
+~$*.docx
+~$*.pptx

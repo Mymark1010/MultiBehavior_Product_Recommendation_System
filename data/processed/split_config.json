@@ -1,0 +1,39 @@
+{
+  "source": {
+    "path": "data/processed/events_clean.parquet",
+    "bytes": 68019334,
+    "sha256": "1896970a4eea649fb55638ef70de0853f781ec744fc316fcd61194dca15f8111"
+  },
+  "timezone": "UTC",
+  "inactivity_threshold_ms": 1800000,
+  "new_session_condition": "visitor changes OR consecutive event gap > threshold",
+  "timestamp_group_key": [
+    "session_id",
+    "timestamp"
+  ],
+  "group_index_starts_at": 1,
+  "quantiles": [
+    0.8,
+    0.9
+  ],
+  "quantile_interpolation": "linear",
+  "cutoff_conversion": "truncate to integer milliseconds",
+  "cutoffs_computed_before_boundary_drop": true,
+  "cutoff_ms": [
+    1439871800445,
+    1441216154032
+  ],
+  "cutoff_utc": [
+    "2015-08-18T04:23:20.445000+00:00",
+    "2015-09-02T17:49:14.032000+00:00"
+  ],
+  "split_rules": {
+    "train": "session end <= cut80",
+    "validation": "session start > cut80 AND session end <= cut90",
+    "test": "session start > cut90",
+    "boundary_drop": "session start <= any cutoff AND session end > that cutoff"
+  },
+  "exclude_boundary_drop_from_history_and_labels": true,
+  "prefix_target_pairs_materialized": false,
+  "boundary_examples_verified": true
+}

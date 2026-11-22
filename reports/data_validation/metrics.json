@@ -1,0 +1,244 @@
+{
+  "generated_at_utc": "2026-11-11T04:38:14.408372+00:00",
+  "status": "PASS",
+  "python_executable": "C:\\Users\\haimi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "pandas_version": "3.0.3",
+  "scope": "Raw events -> clean -> sessions/groups -> temporal split files. Metadata, query/target and model metrics not yet implemented or validated.",
+  "counts": {
+    "raw_rows": 2756101,
+    "duplicates_removed": 460,
+    "clean_rows": 2755641,
+    "sessions": 1761675,
+    "timestamp_groups": 2753015,
+    "split_events": {
+      "train": 2204470,
+      "validation": 275359,
+      "test": 275484,
+      "boundary_drop": 328
+    }
+  },
+  "checks": [
+    {
+      "check": "file_versions",
+      "status": "PASS",
+      "detail": "10 tệp khớp dung lượng và SHA-256."
+    },
+    {
+      "check": "notebook_lineage",
+      "status": "PASS",
+      "detail": "Đầu ra 01, đầu vào 02 và cấu hình chia tập cùng một phiên bản."
+    },
+    {
+      "check": "raw_to_clean_exact_values",
+      "status": "PASS",
+      "detail": "Mọi dòng/cột sạch khớp raw sau đúng quy tắc bỏ trùng và UTC."
+    },
+    {
+      "check": "event_count_balance",
+      "status": "PASS",
+      "detail": "Dòng gốc = dòng sạch + dòng trùng loại."
+    },
+    {
+      "check": "clean_schema",
+      "status": "PASS",
+      "detail": "Không thiếu trường bắt buộc."
+    },
+    {
+      "check": "purchase_ids",
+      "status": "PASS",
+      "detail": "Lượt mua đều có mã giao dịch."
+    },
+    {
+      "check": "valid_events",
+      "status": "PASS",
+      "detail": "Không có nhãn hành vi khác."
+    },
+    {
+      "check": "clean_uniqueness",
+      "status": "PASS",
+      "detail": "event_id duy nhất; không còn dòng trùng năm cột."
+    },
+    {
+      "check": "utc",
+      "status": "PASS",
+      "detail": "Thời gian giữ UTC, không tự cộng 7 giờ."
+    },
+    {
+      "check": "clean_to_sessionized_exact_values",
+      "status": "PASS",
+      "detail": "Thêm khóa phiên/nhóm/split không làm đổi hay mất sự kiện sạch."
+    },
+    {
+      "check": "session_no_excess_splits",
+      "status": "PASS",
+      "detail": "Cùng visitor, nghỉ ≤30 phút thì cùng phiên."
+    },
+    {
+      "check": "session_required_splits",
+      "status": "PASS",
+      "detail": "Đổi visitor hoặc nghỉ >30 phút thì khác phiên."
+    },
+    {
+      "check": "one_visitor_per_session",
+      "status": "PASS",
+      "detail": "Một phiên chỉ có một visitor."
+    },
+    {
+      "check": "session_summary",
+      "status": "PASS",
+      "detail": "Bảng phiên khớp toàn bộ sự kiện và mỗi phiên có một dòng."
+    },
+    {
+      "check": "session_query_count",
+      "status": "PASS",
+      "detail": "Số cặp dự kiến = số nhóm − 1; chưa tạo mẫu thực tế."
+    },
+    {
+      "check": "one_group_per_session_timestamp",
+      "status": "PASS",
+      "detail": "Không tách sự kiện đồng thời thành nhiều nhóm."
+    },
+    {
+      "check": "group_summary",
+      "status": "PASS",
+      "detail": "Mỗi nhóm có một dòng, số liệu khớp events."
+    },
+    {
+      "check": "group_one_session",
+      "status": "PASS",
+      "detail": "Không gom chung các phiên khác nhau."
+    },
+    {
+      "check": "group_one_timestamp",
+      "status": "PASS",
+      "detail": "Không gom sự kiện khác timestamp."
+    },
+    {
+      "check": "group_order",
+      "status": "PASS",
+      "detail": "group_index bắt đầu từ 1 và liên tiếp theo timestamp trong phiên."
+    },
+    {
+      "check": "event_group_links",
+      "status": "PASS",
+      "detail": "Thứ tự nhóm trong events khớp bảng nhóm."
+    },
+    {
+      "check": "time_cutoffs",
+      "status": "PASS",
+      "detail": "Mốc chia khớp phân vị 80%/90% trước loại phiên qua biên."
+    },
+    {
+      "check": "boundary_drop",
+      "status": "PASS",
+      "detail": "Đúng toàn bộ phiên qua một hoặc hai mốc."
+    },
+    {
+      "check": "train_time_range",
+      "status": "PASS",
+      "detail": "Toàn phiên trong train đúng khoảng thời gian."
+    },
+    {
+      "check": "validation_time_range",
+      "status": "PASS",
+      "detail": "Toàn phiên trong validation đúng khoảng thời gian."
+    },
+    {
+      "check": "test_time_range",
+      "status": "PASS",
+      "detail": "Toàn phiên trong test đúng khoảng thời gian."
+    },
+    {
+      "check": "event_split_links",
+      "status": "PASS",
+      "detail": "Events dùng nhãn split của đúng phiên."
+    },
+    {
+      "check": "group_split_links",
+      "status": "PASS",
+      "detail": "Groups dùng nhãn split của đúng phiên."
+    },
+    {
+      "check": "session_not_shared",
+      "status": "PASS",
+      "detail": "Không phiên nào ở nhiều tập."
+    },
+    {
+      "check": "train_file_exact_values",
+      "status": "PASS",
+      "detail": "Toàn bộ dòng/cột tệp train khớp các sự kiện cần có."
+    },
+    {
+      "check": "validation_file_exact_values",
+      "status": "PASS",
+      "detail": "Toàn bộ dòng/cột tệp validation khớp các sự kiện cần có."
+    },
+    {
+      "check": "test_file_exact_values",
+      "status": "PASS",
+      "detail": "Toàn bộ dòng/cột tệp test khớp các sự kiện cần có."
+    },
+    {
+      "check": "boundary_drop_file_exact_values",
+      "status": "PASS",
+      "detail": "Toàn bộ dòng/cột tệp boundary_drop khớp các sự kiện cần có."
+    },
+    {
+      "check": "partition_balance",
+      "status": "PASS",
+      "detail": "Tổng ba tập hợp lệ và boundary_drop bằng events sạch."
+    },
+    {
+      "check": "strict_time_order",
+      "status": "PASS",
+      "detail": "Train trước validation trước test."
+    },
+    {
+      "check": "inputs_unchanged",
+      "status": "PASS",
+      "detail": "Mọi tệp dữ liệu/cấu hình được kiểm tra giữ nguyên."
+    }
+  ],
+  "inputs": {
+    "data/raw/events.csv": {
+      "bytes": 94237913,
+      "sha256": "3745aa83238b1e6d44d8fda209807899f420084398f94ddf745f3cbcfecbf9e7"
+    },
+    "data/processed/events_clean.parquet": {
+      "bytes": 68019334,
+      "sha256": "1896970a4eea649fb55638ef70de0853f781ec744fc316fcd61194dca15f8111"
+    },
+    "data/processed/events_sessionized.parquet": {
+      "bytes": 90215429,
+      "sha256": "0f87faef75ec55595cf66aa37113cb76019ed8f35a9935382ab5471531d88759"
+    },
+    "data/processed/sessions.parquet": {
+      "bytes": 65684836,
+      "sha256": "d071b3dc273939ebae5b231f8092aeb6840396ac8e973e9ea10f2f9597922ced"
+    },
+    "data/processed/timestamp_groups.parquet": {
+      "bytes": 66412490,
+      "sha256": "afc86ae9d2e2dbd8f3285f2998728d47bb229acf10ac3afc0f99f2e11b105690"
+    },
+    "data/processed/splits/train.parquet": {
+      "bytes": 72094899,
+      "sha256": "43c4faaf70cbb021314cdb2b8c633821de9a68d74038c4250bfbcc2289ff89ab"
+    },
+    "data/processed/splits/validation.parquet": {
+      "bytes": 10062151,
+      "sha256": "ecaac6be6600f4031dad89421890c6bb55bd6dd6778547b4714774d98803ef08"
+    },
+    "data/processed/splits/test.parquet": {
+      "bytes": 10082864,
+      "sha256": "ae1de0ca0e359808ab17ab7755eb7903e2801ccfe2665ac3a90fdc17e5dc2e31"
+    },
+    "data/processed/splits/boundary_drop.parquet": {
+      "bytes": 17934,
+      "sha256": "a8a6cc865b10511040f3d5524f728f53fd33fdcb24d9dac89843ff85957639a3"
+    },
+    "data/processed/split_config.json": {
+      "bytes": 1187,
+      "sha256": "44c889b448939daba2b85391e2db3659c2f297f84fdb97183ccbc6e5804133a8"
+    }
+  }
+}

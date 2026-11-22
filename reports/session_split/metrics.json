@@ -1,0 +1,99 @@
+{
+  "generated_at_utc": "2026-11-11T04:29:43.825248+00:00",
+  "python_version": "3.14.5",
+  "python_executable": "C:\\Users\\haimi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "pyarrow_version": "25.0.1",
+  "notebook": "notebooks/02_tao_phien_nhom_timestamp_va_chia_tap.ipynb",
+  "upstream_report_verified": true,
+  "pandas_version": "3.0.3",
+  "source": {
+    "path": "data/processed/events_clean.parquet",
+    "bytes": 68019334,
+    "sha256": "1896970a4eea649fb55638ef70de0853f781ec744fc316fcd61194dca15f8111"
+  },
+  "input_unchanged_during_processing": true,
+  "events": 2755641,
+  "sessions": 1761675,
+  "timestamp_groups": 2753015,
+  "single_event_sessions": 1378963,
+  "single_timestamp_group_sessions": 1379142,
+  "groups_with_multiple_events": 2143,
+  "groups_with_multiple_items": 2132,
+  "groups_with_multiple_behaviors": 12,
+  "splits": {
+    "train": {
+      "sessions": 1396273,
+      "events": 2204470,
+      "timestamp_groups": 2202298,
+      "prefix_target_pairs_before_candidate_filter": 806025
+    },
+    "validation": {
+      "sessions": 182534,
+      "events": 275359,
+      "timestamp_groups": 275100,
+      "prefix_target_pairs_before_candidate_filter": 92566
+    },
+    "test": {
+      "sessions": 182821,
+      "events": 275484,
+      "timestamp_groups": 275289,
+      "prefix_target_pairs_before_candidate_filter": 92468
+    },
+    "boundary_drop": {
+      "sessions": 47,
+      "events": 328,
+      "timestamp_groups": 328,
+      "prefix_target_pairs_before_candidate_filter": 281
+    }
+  },
+  "split_config": {
+    "path": "data/processed/split_config.json",
+    "bytes": 1187,
+    "sha256": "44c889b448939daba2b85391e2db3659c2f297f84fdb97183ccbc6e5804133a8"
+  },
+  "artifacts": {
+    "data/processed/events_sessionized.parquet": {
+      "rows": 2755641,
+      "bytes": 90215429,
+      "sha256": "0f87faef75ec55595cf66aa37113cb76019ed8f35a9935382ab5471531d88759",
+      "parquet_roundtrip_verified": true
+    },
+    "data/processed/sessions.parquet": {
+      "rows": 1761675,
+      "bytes": 65684836,
+      "sha256": "d071b3dc273939ebae5b231f8092aeb6840396ac8e973e9ea10f2f9597922ced",
+      "parquet_roundtrip_verified": true
+    },
+    "data/processed/timestamp_groups.parquet": {
+      "rows": 2753015,
+      "bytes": 66412490,
+      "sha256": "afc86ae9d2e2dbd8f3285f2998728d47bb229acf10ac3afc0f99f2e11b105690",
+      "parquet_roundtrip_verified": true
+    },
+    "data/processed/splits/train.parquet": {
+      "rows": 2204470,
+      "bytes": 72094899,
+      "sha256": "43c4faaf70cbb021314cdb2b8c633821de9a68d74038c4250bfbcc2289ff89ab",
+      "parquet_roundtrip_verified": true
+    },
+    "data/processed/splits/validation.parquet": {
+      "rows": 275359,
+      "bytes": 10062151,
+      "sha256": "ecaac6be6600f4031dad89421890c6bb55bd6dd6778547b4714774d98803ef08",
+      "parquet_roundtrip_verified": true
+    },
+    "data/processed/splits/test.parquet": {
+      "rows": 275484,
+      "bytes": 10082864,
+      "sha256": "ae1de0ca0e359808ab17ab7755eb7903e2801ccfe2665ac3a90fdc17e5dc2e31",
+      "parquet_roundtrip_verified": true
+    },
+    "data/processed/splits/boundary_drop.parquet": {
+      "rows": 328,
+      "bytes": 17934,
+      "sha256": "a8a6cc865b10511040f3d5524f728f53fd33fdcb24d9dac89843ff85957639a3",
+      "parquet_roundtrip_verified": true
+    }
+  },
+  "scope": "Session/group/split artifacts exported; prefix-target counts only, metadata lookup and model training pending."
+}
