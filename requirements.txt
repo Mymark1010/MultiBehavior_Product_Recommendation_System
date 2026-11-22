@@ -1,0 +1,8 @@
+# Python 3.14 (đã kiểm tra với 3.14.5). Mọi timestamp là mili-giây int64, UTC.
+# Cài: python -m venv .venv && .venv/Scripts/pip install -r requirements.txt  (Windows)
+#      python -m venv .venv && .venv/bin/pip install -r requirements.txt      (macOS/Linux)
+pandas==3.0.3
+pyarrow==25.0.1
+ipykernel
+jupyter
+nbstripout
