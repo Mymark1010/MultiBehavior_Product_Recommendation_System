@@ -186,7 +186,7 @@ Số liệu kỳ vọng bên dưới lấy từ README và report hiện có. K�
 - Baseline Repeat-last theo D1.
 - Đầu ra: `reports/eval/popularity_validation.json`, `reports/eval/repeat_last_validation.json`. Có bảng tách theo target mới/lặp và theo độ dài prefix.
 
-### [ ] T11. Notebook 06 — họ kNN (SKNN, V-SKNN, STAN, VSTAN), SR và ItemKNN
+### [x] T11. Notebook 06 — họ kNN (SKNN, V-SKNN, STAN, VSTAN), SR và ItemKNN
 
 Cập nhật v1.2.0: thêm VSTAN (STAN + IDF) và luật tuần tự SR; S-POP nằm ở notebook 05.
 
@@ -196,7 +196,7 @@ Cập nhật v1.2.0: thêm VSTAN (STAN + IDF) và luật tuần tự SR; S-POP n
 - Ghi thời gian fit, thời gian truy vấn trung bình mỗi query và tỷ lệ fallback.
 - Tiêu chí: cùng bộ query, ứng viên và hàm metric như T10. Có báo cáo so sánh trọng số đều với trọng số theo hành vi (câu hỏi nghiên cứu 1).
 
-### [ ] T12. Notebook 07 — GRU4Rec (PyTorch)
+### [x] T12. Notebook 07 — GRU4Rec (PyTorch)
 
 Cập nhật v1.2.0: tự cài theo bộ tính năng bản chính thức (BPR-max và cross-entropy, 2048 negative dùng chung, constrained embedding), cấu hình xuất phát 224 hidden, batch 80; loss chọn trên validation.
 
@@ -207,17 +207,19 @@ Cập nhật v1.2.0: tự cài theo bộ tính năng bản chính thức (BPR-ma
 - Lưu `models/gru4rec/{config.json, model.pt}` (không commit file `.pt` lớn) và `reports/eval/gru4rec_validation.json`.
 - Ablation cho câu hỏi nghiên cứu 2: xáo trộn thứ tự nhóm trong prefix, hoặc chỉ dùng nhóm cuối.
 
-### [ ] T12b. Notebook 08 — SR-GNN (neural đối chứng)
+### [x] T12b. Notebook 08 — SR-GNN (neural đối chứng)
 
 - Đồ thị: nút = item trong prefix (≤ 50 nhóm gần nhất), cạnh từ mọi item nhóm g sang mọi item nhóm g+1, không thứ tự trong nhóm, embedding hành vi cộng vào nút.
 - Sampled softmax như GRU4Rec, early stopping theo NDCG@20 validation. Đầu ra `models/srgnn/`, `reports/eval/srgnn_validation.json`.
 
-### [ ] T12c. Notebook 09 — reranker kiểu HySAR (LightGBM)
+### [x] T12c. Notebook 09 — reranker kiểu HySAR (LightGBM)
 
 - Ứng viên = top-100 kNN tốt nhất ∪ top-100 GRU4Rec ∪ item trong prefix; đặc trưng hành vi, độ phổ biến, danh mục as-of t.
 - Học trên validation (mô hình gốc fit trên train), kiểm định chéo 2 fold theo phiên, báo cáo out-of-fold.
 
 ### [ ] T13. Notebook 10 — thực nghiệm cuối trên test
+
+Trạng thái 24/11/2026: đã chạy test một lần (`reports/final/metrics.json`, `reports/final/BAO_CAO_KET_QUA.md`). **Còn lại:** cập nhật Word/slide bằng số liệu thật.
 
 Cập nhật: chạy diễn tập `RR_FINAL_SPLIT=validation` trước; báo cáo thêm bài toán 2 (cart/mua ở nhóm kế tiếp) và paired bootstrap so với Repeat-last.
 
@@ -227,7 +229,7 @@ Cập nhật: chạy diễn tập `RR_FINAL_SPLIT=validation` trước; báo cá
 - Báo cáo: bảng chính (Recall/Hit/MRR/NDCG @10, @20), bảng theo target mới/lặp, theo độ dài prefix, theo độ phổ biến item; thời gian train/query; tỷ lệ fallback; khoảng tin cậy bootstrap 95% theo query cho NDCG@20.
 - Đầu ra: `reports/final/metrics.json` và `reports/final/BAO_CAO_KET_QUA.md`. Cập nhật Word/slide bằng số liệu thật.
 
-### [ ] T14. Notebook 11 — demo
+### [x] T14. Notebook 11 — demo
 
 - Tải artifact đã lưu. Nhận prefix là danh sách (itemid, event, timestamp). Trả về bảng `rank, item_id, score, category_id, is_fallback` như README mục 3.
 - Có 3 ví dụ lấy từ test, kết quả khớp với lần chạy đánh giá cho cùng query.

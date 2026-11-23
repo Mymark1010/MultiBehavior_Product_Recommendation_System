@@ -1,0 +1,66 @@
+{
+  "generated_at_utc": "2026-11-23T20:12:00.934168+00:00",
+  "split": "test",
+  "files": {
+    "configs/protocol.json": {
+      "bytes": 11406,
+      "sha256": "29ff30f10b638961f99fa322dc937a6aa8cf7ab4eb9c79536a5bc70d19c7414e"
+    },
+    "reports/samples/metrics.json": {
+      "bytes": 9090,
+      "sha256": "8c72a106ad1f356e599f28bbebcd6686ce2409078050b6d0c893f7e417716f41"
+    },
+    "reports/eval/popularity_validation.json": {
+      "bytes": 76445,
+      "sha256": "6bf2d98fc7944c54b9c4be048a04de476ad613aa7f0b81d7d7b25062a33349df"
+    },
+    "reports/eval/spop_validation.json": {
+      "bytes": 13076,
+      "sha256": "e52628d20f245a3aad24e160c9120fbbb54683b371fac7585d1645d101ad991c"
+    },
+    "reports/eval/repeat_last_validation.json": {
+      "bytes": 8808,
+      "sha256": "4bbe38196439fca07e54e5ae38c00429ed3178b059ed3685f8132978e467f6ec"
+    },
+    "reports/eval/knn_validation.json": {
+      "bytes": 250709,
+      "sha256": "f6f3206a1fd7007ac0959b7f1e5a4717ac606bb179d4b153140fbdd794bff697"
+    },
+    "reports/eval/gru4rec_validation.json": {
+      "bytes": 42463,
+      "sha256": "9668140bb13f051622eb6d82a16e70b5ac4bab52356d59a324d70af73ab37c13"
+    },
+    "reports/eval/srgnn_validation.json": {
+      "bytes": 24719,
+      "sha256": "f65dc0d1ed5cbd282ec0a426c5889167cc8e352cb1d74146953ec59f0a1a32b7"
+    },
+    "reports/eval/reranker_validation.json": {
+      "bytes": 20028,
+      "sha256": "b007356087b2af2c49005f995ec370f609276cb61a6a36d1735b8a6282dcac89"
+    },
+    "models/gru4rec/config.json": {
+      "bytes": 352,
+      "sha256": "027c097451924f6e8d83ccd32e9078bc3cd58d2ac8839b6a968858cdde481eaf"
+    },
+    "models/gru4rec/model.pt": {
+      "bytes": 192840657,
+      "sha256": "3ade899e74f21b356aae0d8abdf727f965d42eac5733c46697a5814de39518f5"
+    },
+    "models/srgnn/config.json": {
+      "bytes": 266,
+      "sha256": "ef4fe161f076fc0a5baefe7618f9dda29ef2e37e6ab0a8f3b17aab9b12281f10"
+    },
+    "models/srgnn/model.pt": {
+      "bytes": 86629043,
+      "sha256": "7d37a801777be63e33a21b14e272ae50477d46a2db1a3d5a7e40d8a3c2d47c39"
+    },
+    "models/reranker/config.json": {
+      "bytes": 955,
+      "sha256": "2e65dd449612ed4ec761efd559b1bcfa13bdf5219797a3191cf5bd421b9f4e8b"
+    },
+    "models/reranker/model.txt": {
+      "bytes": 1514968,
+      "sha256": "7b743350b3a011543c075640a571f9938d392d4c34b9b307210cc60b6d06ff74"
+    }
+  }
+}
