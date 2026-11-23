@@ -1,0 +1,47 @@
+{
+  "features": [
+    "knn_score",
+    "knn_rank",
+    "gru_score",
+    "gru_rank",
+    "n_lists",
+    "in_prefix",
+    "prefix_view",
+    "prefix_addtocart",
+    "prefix_transaction",
+    "prefix_last_distance",
+    "in_last_group",
+    "pop_all",
+    "pop_view",
+    "pop_addtocart",
+    "pop_transaction",
+    "prefix_len_groups",
+    "prefix_items",
+    "same_category_as_last"
+  ],
+  "sources": {
+    "knn": "vstan",
+    "gru": "bpr-max_official"
+  },
+  "top_n": 100,
+  "params": {
+    "objective": "lambdarank",
+    "metric": "ndcg",
+    "eval_at": [
+      20
+    ],
+    "lambdarank_truncation_level": 20,
+    "feature_fraction": 0.9,
+    "bagging_fraction": 0.8,
+    "bagging_freq": 1,
+    "seed": 2026,
+    "deterministic": true,
+    "num_threads": 4,
+    "verbose": -1,
+    "num_leaves": 63,
+    "min_data_in_leaf": 50,
+    "learning_rate": 0.05
+  },
+  "num_boost_round": 214,
+  "trained_on": "validation queries (base models fitted on train)"
+}
