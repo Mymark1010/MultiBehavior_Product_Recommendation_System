@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-11-22T19:06:06.200675+00:00",
+  "generated_at_utc": "2026-11-23T09:13:32.361128+00:00",
   "status": "PASS",
   "python_version": "3.14.5",
   "pandas_version": "3.0.3",
@@ -24,7 +24,7 @@
     {
       "check": "file_versions",
       "status": "PASS",
-      "detail": "10 tệp khớp dung lượng và SHA-256; 0 tệp Parquet khớp content_sha256."
+      "detail": "10 tệp khớp dung lượng và SHA-256; 8 tệp Parquet khớp content_sha256."
     },
     {
       "check": "notebook_lineage",
@@ -240,8 +240,8 @@
       "sha256": "a8a6cc865b10511040f3d5524f728f53fd33fdcb24d9dac89843ff85957639a3"
     },
     "data/processed/split_config.json": {
-      "bytes": 1187,
-      "sha256": "44c889b448939daba2b85391e2db3659c2f297f84fdb97183ccbc6e5804133a8"
+      "bytes": 1148,
+      "sha256": "6007b486b4f425b2c9fe80478b07ec87efa117f48e658ee7279570838fb5fcf7"
     }
   }
 }
