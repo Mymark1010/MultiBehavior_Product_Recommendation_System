@@ -1,0 +1,109 @@
+{
+  "version": "1.0.0",
+  "decided_at": "2026-11-23",
+  "decided_by": "Người dùng xác nhận các đề xuất mặc định D1–D6 trong TASKS_HOAN_THIEN.md; D4 chọn sampled softmax CE vì máy không có GPU CUDA.",
+  "seed": 2026,
+  "raw_files": {
+    "data/raw/events.csv": {"rows": 2756101, "bytes": 94237913, "sha256": "3745aa83238b1e6d44d8fda209807899f420084398f94ddf745f3cbcfecbf9e7"},
+    "data/raw/item_properties_part1.csv": {"rows": 10999999, "bytes": 484315749, "sha256": "30aad5aeca58b2dc27dcc73e1708565f5818e45adb3eb57401f91e87355b0b81"},
+    "data/raw/item_properties_part2.csv": {"rows": 9275903, "bytes": 408929907, "sha256": "d5e7d1a91dc40f522aeb596b267e6c87d8aed689a7192d12369cfb165eb987e5"},
+    "data/raw/category_tree.csv": {"rows": 1669, "bytes": 14454, "sha256": "94e865eb0a3d48cbbfe3b79079018dd92509315c88f5fd8d00d0b4b5af434f5b"}
+  },
+  "locked_protocol": {
+    "note": "Giao thức đã chốt ở notebook 01/02; không đổi khi chưa có xác nhận của người dùng.",
+    "inactivity_threshold_ms": 1800000,
+    "new_session_condition": "visitor changes OR consecutive event gap > threshold",
+    "timestamp_group_key": ["session_id", "timestamp"],
+    "split_quantiles": [0.8, 0.9],
+    "split_unit": "whole session; sessions crossing a cutoff -> boundary_drop",
+    "boundary_drop_usage": "never used as history, candidate source or label"
+  },
+  "samples": {
+    "min_groups_per_session": 2,
+    "query": "prefix = groups 1..t of a session (t >= 1); one query per t < n_groups",
+    "query_time_ms": "timestamp of group t (last prefix group)",
+    "target": "set of distinct itemid in group t+1, all behaviors; original IDs kept even when out of vocabulary",
+    "prefix_storage": "not materialised; read events_sessionized by session_id and group_index <= prefix_len_groups"
+  },
+  "vocabulary": {
+    "decision": "D5",
+    "source": "every itemid in train events, including single-group sessions",
+    "pad_idx": 0,
+    "unk_idx": 1,
+    "first_item_idx": 2,
+    "order": "itemid ascending",
+    "trainval_variant": "same rule on train + validation events, used only for the D2 refit before test"
+  },
+  "metadata": {
+    "properties": ["categoryid", "available"],
+    "as_of_rule": "latest update with timestamp <= t (merge_asof direction=backward, by itemid)",
+    "missing": "unknown; never filled from the future"
+  },
+  "candidates": {
+    "rules": [
+      "itemid in the vocabulary of the fitting data",
+      "known_at_ms <= t",
+      "latest available with timestamp <= t != 0 (unknown is kept)"
+    ],
+    "known_at": {
+      "train": "known_at_train_ms = min(first train event, first property record of any property)",
+      "train_validation": "known_at_trainval_ms = min(first train/validation event, first property record)"
+    },
+    "applies_to": "every model and the Popularity fallback",
+    "fallback": "Popularity ranking of the fitting data, uniform behavior weights unless the tuned weights are better on validation",
+    "missing_slots": "if fewer than K eligible items remain, empty slots count as misses"
+  },
+  "repeat_targets": {
+    "decision": "D1",
+    "keep_data": true,
+    "flag": "target_is_repeat per (query, item): item appears anywhere in the prefix",
+    "report_groups": ["all", "new_targets", "repeat_targets"],
+    "baseline": "Repeat-last: prefix items by most recent group, ties by stronger behavior then itemid; filled by Popularity fallback",
+    "optional_ablation": "merge consecutive groups with the same (item, behavior) set — not run unless time allows"
+  },
+  "long_sessions": {
+    "decision": "D3",
+    "drop_sessions": false,
+    "gru_train_max_prefix_groups": 50,
+    "gru_train_truncation": "sessions longer than 51 groups are cut into windows of at most 51 groups (overlap 1 group); hidden state resets at each window; evaluation uses the full prefix",
+    "report_prefix_bins": ["1", "2-4", "5-9", "10+"]
+  },
+  "refit": {
+    "decision": "D2",
+    "select_on": "validation (models fitted on train)",
+    "test_variants": ["train_only", "train_validation_refit"],
+    "primary_test_variant": "train_validation_refit",
+    "refit_rule": "same configuration; GRU uses the epoch count selected on validation; vocabulary, popularity, similarities, session store and known_at recomputed on train+validation",
+    "test_runs": "each variant evaluated on test exactly once after freezing"
+  },
+  "gru4rec": {
+    "decision": "D4",
+    "input_per_step": "mean item embedding of the timestamp group + mean behavior embedding (view/addtocart/transaction)",
+    "hidden_reset": "between sessions",
+    "loss": "sampled softmax cross-entropy: in-batch positives + popularity-sampled shared negatives with log-Q correction; accidental hits masked",
+    "multi_item_targets": "uniform label split: each correct item gets weight 1/|G|",
+    "oov_input_items": "mapped to PAD (ignored in the group mean); behavior embedding still used",
+    "early_stopping": "validation NDCG@20",
+    "device": "cpu",
+    "ablations": ["shuffle group order inside the prefix", "last group only"]
+  },
+  "evaluation": {
+    "ks": [10, 20],
+    "primary_metric": "ndcg@20",
+    "metrics": ["hit", "recall", "mrr", "ndcg"],
+    "gain": "binary; log2 discount; IDCG over min(|G|, K) positions",
+    "denominator": "every query with non-empty target, including out-of-vocabulary targets (score 0)",
+    "breakdowns": ["all / new / repeat targets", "prefix length bins", "target item train popularity bins"],
+    "bootstrap": {"n_resamples": 1000, "seed": 2026, "level": 0.95, "unit": "query"}
+  },
+  "behavior_weights": {
+    "uniform": {"view": 1, "addtocart": 1, "transaction": 1},
+    "grid": {"view": [1], "addtocart": [1, 2, 5, 10], "transaction": [1, 2, 5, 10]}
+  },
+  "code_layout": {
+    "decision": "D6",
+    "shared_code": "src/rr (io, metrics, candidates, samples, models, gru)",
+    "tests": "python -m pytest tests",
+    "independent_notebooks": ["01", "02", "kiem_tra_ket_qua_xu_ly"]
+  }
+}
