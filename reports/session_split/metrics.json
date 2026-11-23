@@ -1,7 +1,6 @@
 {
-  "generated_at_utc": "2026-11-11T04:29:43.825248+00:00",
+  "generated_at_utc": "2026-11-23T09:11:07.977255+00:00",
   "python_version": "3.14.5",
-  "python_executable": "C:\\Users\\haimi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
   "pyarrow_version": "25.0.1",
   "notebook": "notebooks/02_tao_phien_nhom_timestamp_va_chia_tap.ipynb",
   "upstream_report_verified": true,
@@ -48,50 +47,78 @@
   },
   "split_config": {
     "path": "data/processed/split_config.json",
-    "bytes": 1187,
-    "sha256": "44c889b448939daba2b85391e2db3659c2f297f84fdb97183ccbc6e5804133a8"
+    "bytes": 1148,
+    "sha256": "6007b486b4f425b2c9fe80478b07ec87efa117f48e658ee7279570838fb5fcf7"
   },
   "artifacts": {
     "data/processed/events_sessionized.parquet": {
       "rows": 2755641,
       "bytes": 90215429,
       "sha256": "0f87faef75ec55595cf66aa37113cb76019ed8f35a9935382ab5471531d88759",
+      "content_sha256": "27f72a9e4842046cc504f2450d8d86d19232aa775f119cea7401ca687d702769",
+      "content_key": [
+        "event_id"
+      ],
       "parquet_roundtrip_verified": true
     },
     "data/processed/sessions.parquet": {
       "rows": 1761675,
       "bytes": 65684836,
       "sha256": "d071b3dc273939ebae5b231f8092aeb6840396ac8e973e9ea10f2f9597922ced",
+      "content_sha256": "3aa19c31d2d855b0648dd773fcc863e17fb5bee46416e2ab07bed00e2c05405b",
+      "content_key": [
+        "session_id"
+      ],
       "parquet_roundtrip_verified": true
     },
     "data/processed/timestamp_groups.parquet": {
       "rows": 2753015,
       "bytes": 66412490,
       "sha256": "afc86ae9d2e2dbd8f3285f2998728d47bb229acf10ac3afc0f99f2e11b105690",
+      "content_sha256": "a4a61586fb0bb2c81c48114f2d8654401ee66b282a06b05447b2741c75de1cb3",
+      "content_key": [
+        "group_id"
+      ],
       "parquet_roundtrip_verified": true
     },
     "data/processed/splits/train.parquet": {
       "rows": 2204470,
       "bytes": 72094899,
       "sha256": "43c4faaf70cbb021314cdb2b8c633821de9a68d74038c4250bfbcc2289ff89ab",
+      "content_sha256": "5b9a5728b6f57f306dc2b2398366e63b4a3f0f26a49abe1b46e6fe1dd30b4ae0",
+      "content_key": [
+        "event_id"
+      ],
       "parquet_roundtrip_verified": true
     },
     "data/processed/splits/validation.parquet": {
       "rows": 275359,
       "bytes": 10062151,
       "sha256": "ecaac6be6600f4031dad89421890c6bb55bd6dd6778547b4714774d98803ef08",
+      "content_sha256": "bfa9add8c3e224fb89591fd0bab80b8436a8941d120d045dc95554f533005b77",
+      "content_key": [
+        "event_id"
+      ],
       "parquet_roundtrip_verified": true
     },
     "data/processed/splits/test.parquet": {
       "rows": 275484,
       "bytes": 10082864,
       "sha256": "ae1de0ca0e359808ab17ab7755eb7903e2801ccfe2665ac3a90fdc17e5dc2e31",
+      "content_sha256": "f0d6bd81dac0333e8a446713555dda6887c04d89973e9e1a849e4d5ee2e2efae",
+      "content_key": [
+        "event_id"
+      ],
       "parquet_roundtrip_verified": true
     },
     "data/processed/splits/boundary_drop.parquet": {
       "rows": 328,
       "bytes": 17934,
       "sha256": "a8a6cc865b10511040f3d5524f728f53fd33fdcb24d9dac89843ff85957639a3",
+      "content_sha256": "f21e3b774757f2fc8b44dcf02861fdffd1535fb2bca478cb74d9ca64c32048de",
+      "content_key": [
+        "event_id"
+      ],
       "parquet_roundtrip_verified": true
     }
   },

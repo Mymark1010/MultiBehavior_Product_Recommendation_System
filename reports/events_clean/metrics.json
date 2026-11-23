@@ -1,7 +1,6 @@
 {
-  "generated_at_utc": "2026-11-11T04:28:41.983910+00:00",
+  "generated_at_utc": "2026-11-23T09:09:22.690877+00:00",
   "python_version": "3.14.5",
-  "python_executable": "C:\\Users\\haimi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
   "pyarrow_version": "25.0.1",
   "notebook": "notebooks/01_kiem_tra_va_lam_sach_events.ipynb",
   "pandas_version": "3.0.3",
@@ -69,6 +68,10 @@
   "output": {
     "path": "data/processed/events_clean.parquet",
     "bytes": 68019334,
-    "sha256": "1896970a4eea649fb55638ef70de0853f781ec744fc316fcd61194dca15f8111"
+    "sha256": "1896970a4eea649fb55638ef70de0853f781ec744fc316fcd61194dca15f8111",
+    "content_sha256": "014056241fd18dd6467d04c22f49d1214e84509a4ae8cc67eded29f18ef93b8a",
+    "content_key": [
+      "event_id"
+    ]
   }
 }
