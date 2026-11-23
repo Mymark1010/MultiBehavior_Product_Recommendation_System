@@ -1,7 +1,7 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "decided_at": "2026-11-23",
-  "decided_by": "Người dùng xác nhận các đề xuất mặc định D1–D6 trong TASKS_HOAN_THIEN.md; D4 chọn sampled softmax CE vì máy không có GPU CUDA. v1.1.0 (2026-11-23): người dùng duyệt các bổ sung sau review: tách theo hành vi target, paired bootstrap, V-SKNN/STAN, biến thể loại item đã xem, giới hạn fallback top-N, cắt prefix cho KNN.",
+  "decided_by": "Người dùng xác nhận các đề xuất mặc định D1–D6 trong TASKS_HOAN_THIEN.md; D4 chọn sampled softmax CE vì máy không có GPU CUDA. v1.1.0 (2026-11-23): người dùng duyệt các bổ sung sau review: tách theo hành vi target, paired bootstrap, V-SKNN/STAN, biến thể loại item đã xem, giới hạn fallback top-N, cắt prefix cho KNN. v1.2.0 (2026-11-23): người dùng chọn bộ phương pháp theo tài liệu 'Tổng quan phương pháp gợi ý theo phiên trên RetailRocket' (GRU4Rec tự cài theo bản chính thức, SR-GNN nút = item cạnh giữa nhóm, reranker kiểu HySAR, bài toán 2 = cart/mua ở nhóm kế tiếp) và bỏ luật available khỏi bộ lọc ứng viên chính vì 17,6% target validation có available = 0 tại t.",
   "seed": 2026,
   "raw_files": {
     "data/raw/events.csv": {
@@ -67,8 +67,7 @@
   "candidates": {
     "rules": [
       "itemid in the vocabulary of the fitting data",
-      "known_at_ms <= t",
-      "latest available with timestamp <= t != 0 (unknown is kept)"
+      "known_at_ms <= t"
     ],
     "known_at": {
       "train": "known_at_train_ms = min(first train event, first property record of any property)",
@@ -78,7 +77,12 @@
     "fallback": "Popularity ranking of the fitting data, uniform behavior weights unless the tuned weights are better on validation",
     "missing_slots": "if fewer than K eligible items remain, empty slots count as misses",
     "fallback_top_n": 2000,
-    "fallback_note": "only the top fallback_top_n Popularity items are scanned per query (memory bound); a run asserts that every query still gets K eligible items"
+    "fallback_note": "only the top fallback_top_n Popularity items are scanned per query (memory bound); a run asserts that every query still gets K eligible items",
+    "availability_variant": {
+      "rule": "latest available with timestamp <= t != 0 (unknown is kept)",
+      "use": "secondary report only, for the best configuration of each model family",
+      "reason": "17.62% of validation targets (15.43% of train targets) were interacted with while their latest available value was 0; the property is a weekly snapshot and does not block interaction"
+    }
   },
   "repeat_targets": {
     "decision": "D1",
@@ -119,7 +123,7 @@
     "decision": "D4",
     "input_per_step": "mean item embedding of the timestamp group + mean behavior embedding (view/addtocart/transaction)",
     "hidden_reset": "between sessions",
-    "loss": "sampled softmax cross-entropy: in-batch positives + popularity-sampled shared negatives with log-Q correction; accidental hits masked",
+    "loss": "selected on validation among cross-entropy (sampled softmax, log-Q corrected) and bpr-max; see methods.gru4rec",
     "multi_item_targets": "uniform label split: each correct item gets weight 1/|G|",
     "oov_input_items": "mapped to PAD (ignored in the group mean); behavior embedding still used",
     "early_stopping": "validation NDCG@20",
@@ -162,6 +166,10 @@
       "seed": 2026,
       "level": 0.95,
       "use": "difference between each model and the best baseline, same resampled queries for both"
+    },
+    "tasks": {
+      "task1_next_interaction": "target = distinct items of group t+1, every behavior (all queries)",
+      "task2_next_cart_or_purchase": "queries whose group t+1 has an addtocart/transaction event; target = the items of group t+1 with addtocart/transaction (metrics key: strong_behavior_targets)"
     }
   },
   "behavior_weights": {
@@ -190,7 +198,7 @@
   },
   "code_layout": {
     "decision": "D6",
-    "shared_code": "src/rr (io, metrics, candidates, samples, models, gru)",
+    "shared_code": "src/rr (io, metrics, candidates, samples, models, gru, srgnn, rerank, evaluation)",
     "tests": "python -m pytest tests",
     "independent_notebooks": [
       "01",
@@ -213,5 +221,38 @@
     "max_prefix_groups": 50,
     "note": "only the most recent 50 prefix groups are used by KNN scorers (older groups have negligible decay weight); GRU evaluation still uses the full prefix",
     "fit_data": "train sessions only (train+validation for the D2 refit)"
+  },
+  "methods": {
+    "source": "docs: Tổng quan phương pháp gợi ý theo phiên trên RetailRocket (2026-11-23)",
+    "baselines": {
+      "popularity": "uniform and behavior-weighted counts",
+      "spop": "S-POP: behavior-weighted frequency of the item in the prefix, ties by train popularity, filled by Popularity",
+      "repeat_last": "D1 baseline (recency)"
+    },
+    "knn": {
+      "sknn": "binary cosine",
+      "vsknn": "linear position decay in the prefix",
+      "stan": "STAN (lambda1 prefix position, lambda2 neighbour recency, lambda3 neighbour position)",
+      "vstan": "STAN + IDF weighting of shared items and of candidate items (lambda_idf)",
+      "sr": "sequential rules: items of group g -> items of group g+d, weight 1/d for d <= steps; scored from the last prefix group",
+      "itemknn": "kept from T11 as an extra non-sequential neighbour baseline"
+    },
+    "gru4rec": "own implementation following the official GRU4Rec feature set (Hidasi & Czapp 2023): losses cross-entropy and bpr-max (elu, bpreg), shared negative sampling n_sample=2048 with sample_alpha, optional constrained embedding; grid starts from the official RetailRocket setting (hidden 224, batch 80); input = timestamp group + behavior embedding",
+    "srgnn": "gated GNN on the prefix graph: nodes = distinct prefix items (+ mean behavior embedding of their events), directed edges from every item of group g to every item of group g+1 (no fake order inside a group); readout = attention over nodes with the last-group items as local interest; sampled softmax as GRU4Rec",
+    "reranker": "HySAR-style LightGBM lambdarank over the union of candidates of the best kNN model and GRU4Rec; features: base scores and ranks, prefix behavior counts/recency of the item, item popularity, repeat flag, category match at t; trained on validation queries (base models fitted on train), hyperparameters chosen by session-grouped cross-validation on validation; applied to test with base models of the evaluated variant",
+    "not_in_scope": [
+      "MGNN-SPred (only if time allows after the reranker)",
+      "MB-GRL (no code checked)"
+    ]
+  },
+  "notebooks": {
+    "04": "vocabulary and samples",
+    "05": "evaluation, Popularity, S-POP, Repeat-last",
+    "06": "kNN family and SR",
+    "07": "GRU4Rec",
+    "08": "SR-GNN",
+    "09": "HySAR-style reranker",
+    "10": "final test run",
+    "11": "demo"
   }
 }

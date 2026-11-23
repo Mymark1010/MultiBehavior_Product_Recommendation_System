@@ -104,7 +104,11 @@ def prefix_bin(prefix_len) -> pd.Series:
 
 
 def evaluate(topk, queries: pd.DataFrame, targets: pd.DataFrame, ks=KS) -> dict:
-    """Full report: all targets / new-only / repeat-only, and by prefix-length bin.
+    """Full report: all targets, target subsets and prefix-length bins.
+
+    Target subsets keep only the queries that have at least one target of that kind and score them
+    against those targets only: new / repeat (``target_is_repeat``) and addtocart-or-transaction /
+    view-only (``has_strong_behavior``, when present).
 
     queries: rows aligned with ``topk``; needs ``query_id, prefix_len_groups``.
     targets: needs ``query_id, itemid, target_is_repeat``.
@@ -118,8 +122,13 @@ def evaluate(topk, queries: pd.DataFrame, targets: pd.DataFrame, ks=KS) -> dict:
         part = base[base["prefix_bin"] == label]
         if len(part):
             report["by_prefix_len"][label] = summarize(part, ks)
-    for name, flag in [("new_targets", False), ("repeat_targets", True)]:
-        subset = targets[targets["target_is_repeat"] == flag]
+    subsets = [("new_targets", "target_is_repeat", False), ("repeat_targets", "target_is_repeat", True),
+               ("strong_behavior_targets", "has_strong_behavior", True),
+               ("view_only_targets", "has_strong_behavior", False)]
+    for name, column, flag in subsets:
+        if column not in targets:
+            continue
+        subset = targets[targets[column] == flag]
         keep = np.isin(query_ids, subset["query_id"].unique())
         if keep.any():
             report[name] = summarize(per_query_metrics(topk[keep], query_ids[keep], subset, ks), ks)
@@ -136,3 +145,22 @@ def bootstrap_ci(values, n_resamples: int = 1000, seed: int = 0, level: float = 
     alpha = (1 - level) / 2
     return {"mean": float(values.mean()), "low": float(np.quantile(means, alpha)),
             "high": float(np.quantile(means, 1 - alpha)), "n_resamples": n_resamples, "seed": seed}
+
+
+def paired_bootstrap(a, b, n_resamples: int = 1000, seed: int = 0, level: float = 0.95) -> dict:
+    """Paired percentile bootstrap of mean(a - b) over the same resampled queries.
+
+    ``p_not_better`` is the share of resamples with mean difference <= 0 (one-sided).
+    """
+    a, b = np.asarray(a, dtype=float), np.asarray(b, dtype=float)
+    if a.shape != b.shape:
+        raise ValueError("a và b phải cùng bộ query.")
+    diff = a - b
+    rng = np.random.default_rng(seed)
+    means = np.empty(n_resamples)
+    for i in range(n_resamples):
+        means[i] = diff[rng.integers(0, len(diff), len(diff))].mean()
+    alpha = (1 - level) / 2
+    return {"mean_diff": float(diff.mean()), "low": float(np.quantile(means, alpha)),
+            "high": float(np.quantile(means, 1 - alpha)), "p_not_better": float((means <= 0).mean()),
+            "n_resamples": n_resamples, "seed": seed}
