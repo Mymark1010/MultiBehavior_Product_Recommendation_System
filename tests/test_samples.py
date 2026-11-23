@@ -63,3 +63,15 @@ def test_asof_never_uses_future():
     assert out.loc[[3, 1, 2, 0], "available_asof"].tolist() == [pd.NA, "1", "1", pd.NA]
     known = out["available_asof_ms"].notna()
     assert (out.loc[known, "available_asof_ms"] <= keys.loc[known, "query_time_ms"]).all()
+
+
+def test_prefix_events_max_groups_and_chunks():
+    events, groups = toy()
+    q = build_queries(groups, "train")
+    full = prefix_events(q, events)
+    chunked = prefix_events(q, events, chunk=1)
+    pd.testing.assert_frame_equal(full.sort_values(["query_id", "group_index"]).reset_index(drop=True),
+                                  chunked.sort_values(["query_id", "group_index"]).reset_index(drop=True))
+    last = prefix_events(q, events, max_groups=1)
+    assert last.groupby("query_id")["distance"].max().tolist() == [0, 0]
+    assert last[last["query_id"] == 1]["group_index"].tolist() == [2]

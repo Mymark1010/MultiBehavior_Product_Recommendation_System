@@ -69,13 +69,28 @@ def get_prefix(events: pd.DataFrame, query) -> pd.DataFrame:
     return events.loc[mask].sort_values(["group_index", "event_id"] if "event_id" in events else ["group_index"])
 
 
-def prefix_events(queries: pd.DataFrame, events: pd.DataFrame, columns=("itemid", "event")) -> pd.DataFrame:
-    """All prefix events of many queries: query_id, group_index, distance (0 = last prefix group), columns."""
+def prefix_events(queries: pd.DataFrame, events: pd.DataFrame, columns=("itemid", "event"),
+                  max_groups: int | None = None, chunk: int = 50_000) -> pd.DataFrame:
+    """Prefix events of many queries: query_id, group_index, distance (0 = last prefix group), columns.
+
+    ``max_groups`` keeps only the most recent prefix groups (distance < max_groups). Queries are
+    processed in chunks so that long sessions (many queries x many events) stay memory bound.
+    """
     ev = events[["session_id", "group_index", *columns]]
-    merged = queries[["query_id", "session_id", "prefix_len_groups"]].merge(ev, on="session_id")
-    merged = merged[merged["group_index"] <= merged["prefix_len_groups"]]
-    merged = merged.assign(distance=(merged["prefix_len_groups"] - merged["group_index"]).astype(np.int32))
-    return merged.drop(columns=["session_id", "prefix_len_groups"]).reset_index(drop=True)
+    ev = ev[ev["session_id"].isin(queries["session_id"].unique())]
+    parts = []
+    q_all = queries[["query_id", "session_id", "prefix_len_groups"]]
+    for start in range(0, len(q_all), chunk):
+        merged = q_all.iloc[start:start + chunk].merge(ev, on="session_id")
+        keep = merged["group_index"] <= merged["prefix_len_groups"]
+        if max_groups is not None:
+            keep &= merged["group_index"] > merged["prefix_len_groups"] - max_groups
+        merged = merged[keep]
+        merged = merged.assign(distance=(merged["prefix_len_groups"] - merged["group_index"]).astype(np.int32))
+        parts.append(merged.drop(columns=["session_id", "prefix_len_groups"]))
+    if not parts:
+        return pd.DataFrame(columns=["query_id", "group_index", *columns, "distance"])
+    return pd.concat(parts, ignore_index=True)
 
 
 def asof_property(keys: pd.DataFrame, history: pd.DataFrame, prop: str, time_col: str = "query_time_ms"):
