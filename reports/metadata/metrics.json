@@ -1,14 +1,14 @@
 {
-  "generated_at_utc": "2026-11-22T19:24:21.091008+00:00",
+  "generated_at_utc": "2026-11-23T09:18:31.434423+00:00",
   "python_version": "3.14.5",
   "pandas_version": "3.0.3",
   "pyarrow_version": "25.0.1",
   "notebook": "notebooks/03_lich_su_thuoc_tinh_va_catalog.ipynb",
   "protocol": {
     "path": "configs/protocol.json",
-    "version": "1.0.0",
-    "bytes": 5976,
-    "sha256": "0590990b3717db7b4176719571b62c991aa4ad98d89fc3b22620cfacfd473763"
+    "version": "1.1.0",
+    "bytes": 7925,
+    "sha256": "82e5628fd967822b7f2feb4df071b245ebe57e58f56eaf4d834794d8c970259d"
   },
   "inputs": {
     "data/raw/item_properties_part1.csv": {
