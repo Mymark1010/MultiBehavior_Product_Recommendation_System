@@ -20,3 +20,6 @@ Thumbs.db
 .idea/
 ~$*.docx
 ~$*.pptx
+
+# Model artifacts (large; reproducible via notebooks)
+models/**/*.pt

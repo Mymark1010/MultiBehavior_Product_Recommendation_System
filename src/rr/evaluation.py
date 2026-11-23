@@ -48,3 +48,23 @@ def flat(reports: dict, part: str = "all", cols=None) -> pd.DataFrame:
     cols = cols or metric_columns()
     rows = {name: {c: r.get(part, {}).get(c, np.nan) for c in cols} for name, r in reports.items()}
     return pd.DataFrame(rows).T
+
+
+def fit_neighbour_model(family: str, selected: dict, fit_events: pd.DataFrame):
+    """Fit the selected configuration of a kNN/SR family (``knn_validation.json -> selected``)."""
+    from rr.models import ItemKNN, SequentialRules, SessionKNN
+    cfg = selected[family]
+    if family == "itemknn":
+        return ItemKNN(cfg["structure"]["n_neighbors"], cfg["weights"]).fit(fit_events)
+    if family == "sr":
+        return SequentialRules(weights=cfg["weights"], **cfg["structure"]).fit(fit_events)
+    return SessionKNN(family, weights=cfg["weights"], **cfg["structure"]).fit(fit_events)
+
+
+def recommend_neighbour(model, family: str, selected: dict, prefix: pd.DataFrame, query_ids, query_times,
+                        width: int = 200):
+    if family == "itemknn":
+        return model.recommend(prefix, query_ids, width, decay=selected[family]["structure"]["decay"])
+    if family == "sr":
+        return model.recommend(prefix, query_ids, width)
+    return model.recommend(prefix, query_ids, query_times, width)
