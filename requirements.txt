@@ -6,3 +6,10 @@ pyarrow==25.0.1
 ipykernel
 jupyter
 nbstripout
+# P2 — mô hình (torch bản CPU: pip install torch --index-url https://download.pytorch.org/whl/cpu)
+numpy==2.5.5
+scipy==1.18.1
+torch==2.15.0
+lightgbm==4.7.0
+narwhals==2.29.0
+pytest==9.2.0

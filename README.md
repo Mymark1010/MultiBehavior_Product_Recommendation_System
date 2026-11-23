@@ -56,12 +56,14 @@ Kiểm tra nhanh: `sha256sum data/raw/events.csv` (Windows PowerShell: `Get-File
 | [02](notebooks/02_tao_phien_nhom_timestamp_va_chia_tap.ipynb) | Phiên (nghỉ > 30 phút), nhóm `(session_id, timestamp)`, chia 80%/90% theo nguyên phiên | `events_sessionized`, `sessions`, `timestamp_groups`, `splits/`, `split_config.json`, `reports/session_split/` |
 | [Kiểm tra](notebooks/kiem_tra_ket_qua_xu_ly.ipynb) | 36 phép kiểm tra độc lập raw → clean → phiên/nhóm → từng tệp split; chỉ đọc | `reports/data_validation/` |
 | [03](notebooks/03_lich_su_thuoc_tinh_va_catalog.ipynb) | Lịch sử `categoryid`/`available`, cây danh mục, catalog `known_at_ms` | `item_property_history`, `category_tree`, `item_catalog`, `reports/metadata/` |
-| 04 `04_vocabulary_va_bo_mau.ipynb` (chưa có) | Vocabulary train, bộ query/target, metadata as-of tại t | `item_vocab`, `samples/`, `reports/samples/` |
-| 05 `05_danh_gia_va_popularity.ipynb` (chưa có) | Bộ đánh giá, Popularity (đều / theo hành vi), Repeat-last | `reports/eval/popularity_validation.json`, `repeat_last_validation.json` |
-| 06 `06_itemknn_va_sessionknn.ipynb` (chưa có) | ItemKNN đa hành vi, Session-KNN | `reports/eval/knn_validation.json` |
-| 07 `07_gru4rec.ipynb` (chưa có) | GRU4Rec (PyTorch, CPU), sampled softmax CE | `models/gru4rec/`, `reports/eval/gru4rec_validation.json` |
-| 08 `08_thuc_nghiem_cuoi_test.ipynb` (chưa có) | Đóng băng cấu hình, chạy test một lần | `reports/final/` |
-| 09 `09_demo.ipynb` (chưa có) | Demo Top-K từ prefix | bảng `rank, item_id, score, category_id, is_fallback` |
+| [04](notebooks/04_vocabulary_va_bo_mau.ipynb) | Vocabulary train, bộ query/target, metadata as-of tại t | `item_vocab`, `samples/`, `reports/samples/` |
+| [05](notebooks/05_danh_gia_va_popularity.ipynb) | Bộ đánh giá chung, Popularity (đều / theo hành vi), S-POP, Repeat-last | `reports/eval/{popularity,spop,repeat_last}_validation.json` |
+| [06](notebooks/06_itemknn_va_sessionknn.ipynb) | SKNN, V-SKNN, STAN, VSTAN, luật tuần tự SR, ItemKNN; trọng số đều vs theo hành vi | `reports/eval/knn_validation.json` |
+| [07](notebooks/07_gru4rec.ipynb) | GRU4Rec theo bản chính thức (BPR-max / cross-entropy, constrained embedding) + embedding hành vi | `models/gru4rec/`, `reports/eval/gru4rec_validation.json` |
+| [08](notebooks/08_srgnn.ipynb) | SR-GNN trên đồ thị nhóm timestamp (neural đối chứng) | `models/srgnn/`, `reports/eval/srgnn_validation.json` |
+| [09](notebooks/09_reranker_hysar.ipynb) | Reranker kiểu HySAR (LightGBM) trên ứng viên kNN + GRU4Rec | `models/reranker/`, `reports/eval/reranker_validation.json` |
+| [10](notebooks/10_thuc_nghiem_cuoi_test.ipynb) | Đóng băng cấu hình, chạy test một lần (train_only và refit train+validation) | `reports/final/` |
+| [11](notebooks/11_demo.ipynb) | Demo Top-K từ prefix, đối chiếu với lần chạy đánh giá | bảng `rank, item_id, score, category_id, is_fallback` |
 
 Từ notebook 03 trở đi, hàm dùng chung (đọc/ghi, metric, lọc ứng viên, mô hình) nằm trong [`src/rr/`](src/rr/) và có test: `python -m pytest tests`. Notebook 01, 02 và notebook kiểm tra vẫn độc lập, không import `src/`.
 
@@ -73,9 +75,10 @@ Quy tắc bất biến (chi tiết: [`CLAUDE.md`](CLAUDE.md), [`configs/protocol
 
 - Chỉ học popularity, độ tương đồng, kho phiên, vocabulary, trọng số từ `train`; chọn siêu tham số trên `validation`; `test` chạy một lần.
 - Metadata tại `t` chỉ dùng bản cập nhật có `timestamp ≤ t`; thiếu thì `unknown`.
-- Ứng viên: `known_at_ms ≤ t`, `available` gần nhất `≠ 0` (unknown vẫn giữ), có trong vocabulary.
+- Ứng viên: có trong vocabulary và `known_at_ms ≤ t`. Luật `available ≠ 0` chỉ dùng cho báo cáo phụ (protocol v1.2.0: 17,6% target validation có `available = 0` tại t).
 - Target giữ ID gốc kể cả ngoài vocabulary và vẫn tính vào mẫu số.
-- Chỉ số chính **NDCG@20**; báo cáo thêm Recall, Hit Rate, MRR tại K = 10, 20; tách theo target mới/lặp và độ dài prefix.
+- Chỉ số chính **NDCG@20**; báo cáo thêm Recall, Hit Rate, MRR tại K = 10, 20; hai bài toán (tương tác kế tiếp; thêm giỏ/mua ở nhóm kế tiếp); tách theo target mới/lặp, độ dài prefix và độ phổ biến item.
+- Bộ phương pháp theo tài liệu tổng quan phương pháp gợi ý theo phiên trên RetailRocket: baseline Popularity/S-POP/Repeat-last, họ kNN + SR, GRU4Rec, SR-GNN, reranker kiểu HySAR (`configs/protocol.json → methods`).
 
 ## Mã băm trong report: `sha256` và `content_sha256`
 
