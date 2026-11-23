@@ -23,3 +23,4 @@ Thumbs.db
 
 # Model artifacts (large; reproducible via notebooks)
 models/**/*.pt
+models/**/model.txt
