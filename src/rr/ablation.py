@@ -179,16 +179,18 @@ NEURAL = ["gru4rec", "srgnn"]
 
 def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd.DataFrame, eval_t: pd.DataFrame,
                  catalog: pd.DataFrame, history: pd.DataFrame, known_at_column: str, cfg: dict, neural: str,
-                 fit_samples=None, neural_models=None, log=print):
+                 fit_samples=None, neural_models=None, log=print, keep_lists=()):
     """Fit every non-reranker model with its frozen configuration and score ``eval_q``.
 
     ``cfg``: ``popularity``, ``spop_weights``, ``knn_selected``, ``gru``, ``srgnn`` (frozen configs),
-    ``fallback_top_n``, ``max_groups``, ``max_len``, ``seed``, ``width``, ``root``.
+    ``fallback_top_n``, ``max_groups``, ``max_len``, ``seed``, ``width``, ``root`` and optionally ``model_dir``
+    (folder with ``gru4rec/model.pt`` and ``srgnn/model.pt``, default ``root/models``).
     ``neural``: ``"load"`` (saved models of notebooks 07/08, vocabulary must equal theirs),
     ``"train"`` (retrain with the selected epochs on ``fit_events``; needs ``fit_samples`` =
     (queries, targets) of the fitting split for SR-GNN), ``"reuse"`` (``neural_models`` from an
     earlier call with the same vocabulary) or ``"skip"``.
-    Returns ``(results, models)``; ``results[name] = {"report", "per_query", "fit_seconds", "query_seconds"}``.
+    Returns ``(results, models)``; ``results[name] = {"report", "per_query", "fit_seconds", "query_seconds"}``,
+    plus ``"lists"`` (raw candidate items, scores) for the models named in ``keep_lists``.
     """
     import torch
 
@@ -202,6 +204,7 @@ def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd
     if fit_events["timestamp"].max() >= eval_q["query_time_ms"].min():
         raise ValueError("Dữ liệu fit phải nằm trước mọi query đánh giá.")
     width, seed = cfg["width"], cfg["seed"]
+    model_dir = cfg.get("model_dir", cfg["root"] / "models")
     qids, qtimes = eval_q["query_id"].to_numpy(), eval_q["query_time_ms"].to_numpy()
     vocab = build_vocab(fit_events)
     flt = CandidateFilter.from_frames(vocab, catalog, history, known_at_column)
@@ -241,7 +244,7 @@ def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd
                 return models["gru4rec"]
             m = G.build_from_config(gcfg, n_items=n_items)
             if neural == "load":
-                m.load_state_dict(torch.load(cfg["root"] / "models/gru4rec/model.pt"))
+                m.load_state_dict(torch.load(model_dir / "gru4rec/model.pt"))
                 return m
             torch.manual_seed(seed)
             m = G.build_from_config(gcfg, n_items=n_items)
@@ -260,7 +263,7 @@ def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd
             torch.manual_seed(seed)
             m = S.SRGNN(n_items, dim=scfg["dim"], steps=scfg["steps"], dropout=scfg["dropout"])
             if neural == "load":
-                m.load_state_dict(torch.load(cfg["root"] / "models/srgnn/model.pt"))
+                m.load_state_dict(torch.load(model_dir / "srgnn/model.pt"))
                 return m
             fq, ft = fit_samples
             graphs = S.GraphData(prefix_events(fq, fit_events, ("itemid", "event"), max_groups=cfg["max_groups"]),
@@ -285,4 +288,6 @@ def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd
             rep, pq, _, _ = run(items, scores, eval_q, eval_t, flt, fb_items, fb_scores)
         results[name] = {"report": rep, "per_query": pq, "fit_seconds": round(fit_s[name] or 0.0, 1),
                          "query_seconds": round(query_s[name], 1)}
+        if name in keep_lists:
+            results[name]["lists"] = (items, scores)
     return results, models

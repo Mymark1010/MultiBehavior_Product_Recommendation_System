@@ -1,0 +1,16 @@
+{
+  "name": "dim100_lr0.001",
+  "dim": 100,
+  "steps": 1,
+  "dropout": 0.1,
+  "lr": 0.001,
+  "batch_size": 256,
+  "n_neg": 2048,
+  "sample_alpha": 0.5,
+  "max_groups": 50,
+  "n_items": 212917,
+  "epochs": 5,
+  "seed": 2026,
+  "vocabulary": "train (60-minute sessions)",
+  "width": 200
+}

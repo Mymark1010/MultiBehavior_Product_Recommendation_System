@@ -20,6 +20,7 @@ Các tài liệu trước đây được README nhắc tới nhưng không còn 
 | Notebook 08 | Thực nghiệm cuối trên test (một lần) | Xem `reports/final/` |
 | Notebook 09 | Demo Top-K theo phiên | Tải artifact đã lưu |
 | Notebook 12 | Ablation dữ liệu (phân tích phụ, không đổi giao thức): visitor bất thường, gộp nhóm lặp liên tiếp, ngưỡng phiên 60 phút | Xem `reports/data_ablation/BAO_CAO_ABLATION_DU_LIEU.md` |
+| Notebook 13–14 | Biến thể phụ phiên 60 phút: tune lại trên validation 60 phút, chạy test một lần (ngoại lệ đã được duyệt). Kết quả gần như trùng 30 phút, reranker Δ −0,0002 → giữ 30 phút | Xem `reports/session60/test/BAO_CAO_PHIEN_60_PHUT.md` |
 
 ## 2. Dữ liệu sử dụng
 

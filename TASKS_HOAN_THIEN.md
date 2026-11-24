@@ -244,6 +244,20 @@ Phân tích phụ sau rà soát dữ liệu; **không đổi giao thức chính*
 - C. Ngưỡng phiên 60 phút: sessionize lại, cùng mốc 0.8/0.9, fit lại mọi mô hình (trừ reranker), 2×2 fit 30/60 × đánh giá 30/60.
 - Tiêu chí: `sessionize(30 phút)` tái tạo đúng notebook 02; mốc so sánh khớp `reports/final_rehearsal` (train_only) tuyệt đối; Top-K test đã lưu khớp `reports/final`; paired bootstrap trên cùng bộ query; `reports/data_ablation/{metrics.json, BAO_CAO_ABLATION_DU_LIEU.md}`.
 
+### [x] T16. Notebook 13–14 — phiên 60 phút: tune lại và chạy test (người dùng duyệt 24/11/2026)
+
+Báo cáo phụ; **kết quả chính thức vẫn là phiên 30 phút** (`reports/final`). Người dùng duyệt một lần đọc test bổ sung cho biến thể 60 phút (ngoại lệ có ghi nhận với quy tắc "test chạy một lần").
+
+- Notebook 13: dựng dữ liệu 60 phút (cùng mốc 0.8/0.9), mẫu, vocabulary, `known_at`; tune trên validation 60 phút với cùng lưới/thủ tục notebook 05–09 (kNN đủ 51 lần chạy; GRU4Rec và SR-GNN giữ kiến trúc đã chọn, chọn số epoch; reranker CV 2 fold). Đầu ra `data/processed/session60/`, `models/session60/`, `reports/session60/validation.json`.
+- Notebook 14: đóng băng → diễn tập trên validation → test một lần; hai biến thể train_only / train_validation_refit; đánh giá trên query test 30 phút chính thức (so trực tiếp với `reports/final`, paired bootstrap với Top-K đã lưu) và trên query test 60 phút. Đầu ra `reports/session60/test/`.
+- **Kết quả (24/11/2026):**
+  - Trên cùng query test 30 phút, Δ NDCG@20 của 60 phút so với 30 phút:
+    - reranker −0,0002 (refit);
+    - GRU4Rec −0,0001 (refit) và +0,0007 (train_only, không có ý nghĩa);
+    - VSTAN +0,0012;
+    - SR-GNN +0,0043.
+  - Thứ hạng mô hình không đổi → **giữ 30 phút**. Xem `reports/session60/test/BAO_CAO_PHIEN_60_PHUT.md`.
+
 ---
 
 ## Ghi chú cho người dùng
