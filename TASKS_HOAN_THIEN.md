@@ -235,6 +235,15 @@ Cập nhật: chạy diễn tập `RR_FINAL_SPLIT=validation` trước; báo cá
 - Có 3 ví dụ lấy từ test, kết quả khớp với lần chạy đánh giá cho cùng query.
 - Hướng dẫn chạy từ kernel mới trong README.
 
+### [x] T15. Notebook 12 — ablation dữ liệu (người dùng duyệt 24/11/2026)
+
+Phân tích phụ sau rà soát dữ liệu; **không đổi giao thức chính**, chỉ đánh giá trên validation, test chỉ chấm lại từ Top-K đã lưu.
+
+- A. Visitor bất thường: ngưỡng học từ train (phân vị 99,99% sự kiện và giao dịch theo visitor-ngày UTC); báo cáo metric toàn bộ / bỏ visitor bị gắn cờ / chỉ visitor bị gắn cờ; độ nhạy bỏ top-10 visitor.
+- B. Ablation D1 "gộp nhóm liên tiếp trùng `(item, hành vi)`": 2×2 fit gốc/gộp × đánh giá gốc/gộp.
+- C. Ngưỡng phiên 60 phút: sessionize lại, cùng mốc 0.8/0.9, fit lại mọi mô hình (trừ reranker), 2×2 fit 30/60 × đánh giá 30/60.
+- Tiêu chí: `sessionize(30 phút)` tái tạo đúng notebook 02; mốc so sánh khớp `reports/final_rehearsal` (train_only) tuyệt đối; Top-K test đã lưu khớp `reports/final`; paired bootstrap trên cùng bộ query; `reports/data_ablation/{metrics.json, BAO_CAO_ABLATION_DU_LIEU.md}`.
+
 ---
 
 ## Ghi chú cho người dùng

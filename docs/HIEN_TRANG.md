@@ -19,6 +19,7 @@ Các tài liệu trước đây được README nhắc tới nhưng không còn 
 | Notebook 05–07 | Popularity, Repeat-last, ItemKNN, Session-KNN, GRU4Rec trên validation | Xem `reports/eval/` |
 | Notebook 08 | Thực nghiệm cuối trên test (một lần) | Xem `reports/final/` |
 | Notebook 09 | Demo Top-K theo phiên | Tải artifact đã lưu |
+| Notebook 12 | Ablation dữ liệu (phân tích phụ, không đổi giao thức): visitor bất thường, gộp nhóm lặp liên tiếp, ngưỡng phiên 60 phút | Xem `reports/data_ablation/BAO_CAO_ABLATION_DU_LIEU.md` |
 
 ## 2. Dữ liệu sử dụng
 
