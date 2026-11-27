@@ -23,4 +23,6 @@ Thumbs.db
 
 # Model artifacts (large; reproducible via notebooks)
 models/**/*.pt
-models/**/model.txt
+
+# Third-party code fetched by notebook 13 (official GRU4Rec, research/education license; not redistributed)
+external/
