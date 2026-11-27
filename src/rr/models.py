@@ -1,4 +1,4 @@
-"""Non-neural recommenders: Popularity, Repeat-last, ItemKNN and the session-KNN family.
+"""Non-neural recommenders: Popularity and the session-KNN family (SKNN, STAN, VSTAN).
 
 Every model returns ranked *candidate* matrices of original item IDs ([n_queries, N], -1 padding)
 plus scores; :func:`rr.candidates.finalize_topk` then applies the candidate filter at t, removes
@@ -90,20 +90,6 @@ def popularity(events: pd.DataFrame, weights: dict):
     return frame["itemid"].to_numpy(), frame["score"].to_numpy()
 
 
-# ---------------------------------------------------------------- Repeat-last
-def repeat_last(prefix: pd.DataFrame, query_ids, width: int = 50):
-    """Prefix items by most recent group, ties by stronger behavior, then itemid."""
-    row_of = pd.Series(np.arange(len(query_ids)), index=np.asarray(query_ids))
-    p = pd.DataFrame({"row": row_of.reindex(prefix["query_id"].to_numpy()).to_numpy(),
-                      "itemid": prefix["itemid"].to_numpy(), "distance": prefix["distance"].to_numpy(),
-                      "strength": event_codes(prefix["event"])})
-    agg = (p.sort_values(["row", "itemid", "distance", "strength"], ascending=[True, True, True, False])
-             .drop_duplicates(["row", "itemid"]))
-    # score: higher is better; distance dominates, strength breaks ties.
-    score = -agg["distance"].to_numpy(dtype=float) * 10 + agg["strength"].to_numpy()
-    return rank_long(agg["row"].to_numpy(), agg["itemid"].to_numpy(), score, len(query_ids), width)
-
-
 # ---------------------------------------------------------------- query vectors
 def query_weights(prefix: pd.DataFrame, query_ids, index: ItemIndex, scheme: str, bw: np.ndarray | None = None,
                   decay: float = 1.0, lam: float = 1.0):
@@ -130,51 +116,6 @@ def query_weights(prefix: pd.DataFrame, query_ids, index: ItemIndex, scheme: str
     f = pd.DataFrame({"row": rows, "pos": pos[keep], "w": w, "d": d})
     f = f.sort_values(["row", "pos", "w", "d"], ascending=[True, True, False, True]).drop_duplicates(["row", "pos"])
     return f["row"].to_numpy(), f["pos"].to_numpy(), f["w"].to_numpy(), f["d"].to_numpy()
-
-
-# ---------------------------------------------------------------- ItemKNN
-def session_item_matrix(events: pd.DataFrame, index: ItemIndex, bw: np.ndarray):
-    """Sessions x items, value = weight of the strongest behavior of that item in the session."""
-    sess, sess_pos = np.unique(events["session_id"].to_numpy(), return_inverse=True)
-    w = bw[event_codes(events["event"])]
-    # max (not sum) over repeated (session, item) events.
-    f = pd.DataFrame({"r": sess_pos, "c": index.pos(events["itemid"].to_numpy()), "w": w}).groupby(["r", "c"])["w"].max()
-    return sp.csr_matrix((f.to_numpy(), (f.index.get_level_values(0), f.index.get_level_values(1))),
-                         shape=(len(sess), len(index)))
-
-
-class ItemKNN:
-    def __init__(self, n_neighbors: int = 100, weights: dict | None = None):
-        self.n_neighbors = n_neighbors
-        self.weights = weights or dict.fromkeys(BEHAVIORS, 1)
-
-    def fit(self, events: pd.DataFrame):
-        self.index = ItemIndex(events["itemid"].to_numpy())
-        bw = behavior_weights(self.weights)
-        x = session_item_matrix(events, self.index, bw)
-        x = x[np.diff(x.indptr) >= 2]  # sessions with one item add no co-occurrence
-        co = (x.T @ x).tocsr()
-        norms = np.sqrt(co.diagonal())
-        co.setdiag(0)
-        co.eliminate_zeros()
-        inv = np.where(norms > 0, 1 / np.maximum(norms, 1e-12), 0)
-        co = sp.diags(inv) @ co @ sp.diags(inv)
-        self.sim = topn_csr(co.tocsr(), self.n_neighbors)
-        return self
-
-    def recommend(self, prefix: pd.DataFrame, query_ids, width: int = 200, decay: float = 1.0,
-                  use_prefix_behavior: bool = False, chunk: int = 20_000):
-        rows, pos, w, _ = query_weights(prefix, query_ids, self.index, "power",
-                                        behavior_weights(self.weights) if use_prefix_behavior else None, decay)
-        n = len(query_ids)
-        items = np.full((n, width), PAD_ITEM, dtype=np.int64)
-        scores = np.full((n, width), np.nan)
-        q = sp.csr_matrix((w, (rows, pos)), shape=(n, len(self.index)))
-        for start in range(0, n, chunk):
-            block = (q[start:start + chunk] @ self.sim).tocsr()
-            it, sc = csr_to_ranked(block, self.index.items, width)
-            items[start:start + chunk], scores[start:start + chunk] = it, sc
-        return items, scores
 
 
 # ---------------------------------------------------------------- Session-KNN family

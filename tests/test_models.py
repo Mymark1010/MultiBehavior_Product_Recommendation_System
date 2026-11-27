@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import scipy.sparse as sp
 
-from rr.models import ItemKNN, SessionKNN, popularity, rank_long, repeat_last, topn_csr
+from rr.models import SessionKNN, popularity, rank_long, topn_csr
 
 
 def ev(rows):
@@ -27,24 +27,6 @@ def test_popularity_weights():
     e = ev([(1, 1, 10, "view", 0), (1, 2, 10, "view", 1), (2, 1, 20, "addtocart", 2)])
     assert popularity(e, {"view": 1, "addtocart": 1, "transaction": 1})[0].tolist() == [10, 20]
     assert popularity(e, {"view": 1, "addtocart": 5, "transaction": 1})[0].tolist() == [20, 10]
-
-
-def test_repeat_last_order():
-    p = pre([(7, 1, "view", 1), (7, 2, "view", 0), (7, 3, "addtocart", 0), (7, 1, "view", 2), (8, 4, "view", 0)])
-    items, _ = repeat_last(p, [7, 8, 9], width=4)
-    assert items.tolist() == [[3, 2, 1, -1], [4, -1, -1, -1], [-1, -1, -1, -1]]
-
-
-def test_itemknn_cosine_by_hand():
-    e = ev([(1, 1, 1, "view", 0), (1, 2, 2, "view", 1), (2, 1, 1, "view", 2), (2, 1, 2, "view", 2),
-            (3, 1, 1, "view", 3), (3, 2, 3, "view", 4)])
-    model = ItemKNN(n_neighbors=10).fit(e)
-    items, scores = model.recommend(pre([(0, 1, "view", 0)]), [0], width=3)
-    assert items[0].tolist() == [2, 3, -1]
-    np.testing.assert_allclose(scores[0, :2], [2 / np.sqrt(6), 1 / np.sqrt(3)])
-    # n_neighbors=1 keeps only the best neighbour of item 1
-    items, _ = ItemKNN(n_neighbors=1).fit(e).recommend(pre([(0, 1, "view", 0)]), [0], width=3)
-    assert items[0].tolist() == [2, -1, -1]
 
 
 def test_sknn_by_hand():

@@ -7,8 +7,8 @@
   "protocol": {
     "path": "configs/protocol.json",
     "version": "1.3.2",
-    "bytes": 11670,
-    "sha256": "a8ad97970c7e3fa26acdb21d1288b751d0954a9f759ff2257c756071b29ec58a"
+    "bytes": 11390,
+    "sha256": "df6fd1903e5c5e5cfa209da31217613969f6fb0d307ef648bd7af73215e086c9"
   },
   "inputs": {
     "data/processed/item_vocab.parquet": {

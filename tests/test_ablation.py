@@ -75,11 +75,11 @@ def test_score_models_subset_and_gru_variants():
     w = {"view": 1, "addtocart": 1, "transaction": 1}
     cfg = {"popularity": {"fallback_weights": w, "popularity_behavior_weights": w}, "fallback_top_n": 10, "max_groups": 50,
            "max_len": 10, "seed": 0, "width": 5, "root": None, "model_dir": "unused",
-           "models": ["popularity", "repeat_last", "gru4rec_item", "gru4rec"],
+           "models": ["popularity", "gru4rec_item", "gru4rec"],
            "gru_variants": {"gru4rec_item": {**gru, "use_behavior": False}, "gru4rec": gru}}
     res, models = score_models(fit_ev, test_ev, tq, tt, known, history, "known_at_train_ms", cfg, "train",
                                log=lambda m: None, keep_topk=("gru4rec",))
-    assert sorted(res) == ["gru4rec", "gru4rec_item", "popularity", "repeat_last"]
+    assert sorted(res) == ["gru4rec", "gru4rec_item", "popularity"]
     assert not models["gru4rec_item"].use_behavior and models["gru4rec"].use_behavior
     assert res["gru4rec"]["topk"][0].shape == (len(tq), 20) and "topk" not in res["gru4rec_item"]
     assert all(r["report"]["all"]["n_queries"] == len(tq) for r in res.values())  # OOV target stays in the denominator
@@ -88,6 +88,6 @@ def test_score_models_subset_and_gru_variants():
     assert again["gru4rec"]["report"]["all"]["ndcg@20"] == res["gru4rec"]["report"]["all"]["ndcg@20"]
     with pytest.raises(ValueError):
         score_models(fit_ev, test_ev, tq, tt, known, history, "known_at_train_ms", {**cfg, "models": ["no_such_model"]}, "skip")
-    for removed in ["srgnn", "spop", "sr", "vsknn"]:  # removed in protocol v1.3.1 / v1.3.2
+    for removed in ["srgnn", "spop", "sr", "vsknn", "repeat_last", "itemknn"]:  # removed from scope
         with pytest.raises(ValueError):
             score_models(fit_ev, test_ev, tq, tt, known, history, "known_at_train_ms", {**cfg, "models": [removed]}, "skip")

@@ -111,7 +111,7 @@ def topk_matrix(long: pd.DataFrame, query_ids, k: int = 20) -> np.ndarray:
 
 
 # ---------------------------------------------------------------- model scoring
-NON_NEURAL = ["popularity", "repeat_last", "itemknn", "sknn", "stan", "vstan"]
+NON_NEURAL = ["popularity", "sknn", "stan", "vstan"]
 
 
 def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd.DataFrame, eval_t: pd.DataFrame,
@@ -135,7 +135,7 @@ def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd
     from rr import gru as G
     from rr.candidates import CandidateFilter
     from rr.evaluation import fit_neighbour_model, recommend_neighbour, run
-    from rr.models import popularity, repeat_last
+    from rr.models import popularity
     from rr.samples import build_vocab, prefix_events
 
     if fit_events["timestamp"].max() >= eval_q["query_time_ms"].min():
@@ -166,10 +166,8 @@ def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd
     empty = np.empty((len(eval_q), 0), dtype=np.int64)
     if "popularity" in wanted:
         lists["popularity"], fit_s["popularity"], query_s["popularity"] = (empty, None), 0.0, 0.0
-    if "repeat_last" in wanted:
-        timed("repeat_last", lambda: None, lambda m: repeat_last(prefix_full, qids, width=50))
     sel = cfg.get("knn_selected", {})
-    for fam in [f for f in ["itemknn", "sknn", "stan", "vstan"] if f in wanted]:
+    for fam in [f for f in ["sknn", "stan", "vstan"] if f in wanted]:
         timed(fam, lambda fam=fam: fit_neighbour_model(fam, sel, fit_events),
               lambda m, fam=fam: recommend_neighbour(m, fam, sel, prefix, qids, qtimes, width))
 
