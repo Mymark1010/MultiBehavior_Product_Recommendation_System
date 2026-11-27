@@ -1,0 +1,77 @@
+{
+  "generated_at_utc": "2026-11-23T09:09:22.690877+00:00",
+  "python_version": "3.14.5",
+  "pyarrow_version": "25.0.1",
+  "notebook": "notebooks/01_kiem_tra_va_lam_sach_events.ipynb",
+  "pandas_version": "3.0.3",
+  "source": {
+    "path": "data/raw/events.csv",
+    "bytes": 94237913,
+    "sha256": "3745aa83238b1e6d44d8fda209807899f420084398f94ddf745f3cbcfecbf9e7"
+  },
+  "raw_rows": 2756101,
+  "schema_violations": {
+    "missing_required": 0,
+    "invalid_timestamp": 0,
+    "invalid_visitorid": 0,
+    "invalid_itemid": 0,
+    "invalid_transactionid": 0,
+    "invalid_event": 0,
+    "purchase_missing_transactionid": 0,
+    "nonpurchase_has_transactionid": 0
+  },
+  "exact_duplicate_rows_removed": 460,
+  "duplicates_by_event": {
+    "addtocart": 366,
+    "view": 94
+  },
+  "clean_rows": 2755641,
+  "clean_event_counts": {
+    "view": 2664218,
+    "addtocart": 68966,
+    "transaction": 22457
+  },
+  "time_min_utc": "2015-05-03T03:00:04.384000+00:00",
+  "time_max_utc": "2015-09-18T02:59:47.788000+00:00",
+  "output_dtypes": {
+    "timestamp": "int64",
+    "visitorid": "int64",
+    "event": "category",
+    "itemid": "int64",
+    "transactionid": "Int64",
+    "event_id": "int64",
+    "event_time": "datetime64[ms, UTC]"
+  },
+  "rules": {
+    "deduplicate_on": [
+      "timestamp",
+      "visitorid",
+      "event",
+      "itemid",
+      "transactionid"
+    ],
+    "integer_min": 0,
+    "integer_max": 9223372036854775807,
+    "keep_repeated_interactions_at_different_times": true,
+    "timestamp_unit": "ms",
+    "timezone": "UTC",
+    "expected_time_start_inclusive": "2015-05-03T00:00:00+00:00",
+    "expected_time_end_exclusive": "2015-09-19T00:00:00+00:00",
+    "sort_by": [
+      "visitorid",
+      "event_time",
+      "event_id"
+    ]
+  },
+  "raw_unchanged_during_processing": true,
+  "parquet_roundtrip_verified": true,
+  "output": {
+    "path": "data/processed/events_clean.parquet",
+    "bytes": 68019334,
+    "sha256": "1896970a4eea649fb55638ef70de0853f781ec744fc316fcd61194dca15f8111",
+    "content_sha256": "014056241fd18dd6467d04c22f49d1214e84509a4ae8cc67eded29f18ef93b8a",
+    "content_key": [
+      "event_id"
+    ]
+  }
+}

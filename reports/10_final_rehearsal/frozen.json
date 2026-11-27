@@ -1,0 +1,58 @@
+{
+  "generated_at_utc": "2026-11-26T14:53:50.480320+00:00",
+  "split": "validation",
+  "files": {
+    "configs/protocol.json": {
+      "bytes": 12793,
+      "sha256": "9ec996d68831da8ebcef73c19b4f06aac47fbd3eccbb4607f7114fa5ff1d5367"
+    },
+    "reports/09_validation_30_60/metrics.json": {
+      "bytes": 130835,
+      "sha256": "2bdd6837246a20a5c63a8af9b8ef7593ef9ed53428d56045d6bc00054b6b08b0"
+    },
+    "reports/05_08_validation/popularity_validation.json": {
+      "bytes": 47623,
+      "sha256": "1ef1579031f4b9c7a8527c22a122d1bf19c0cef960d377833d8f11559e40d927"
+    },
+    "reports/05_08_validation/knn_validation.json": {
+      "bytes": 109443,
+      "sha256": "b9812c803f98888e438cef47a387a136b24c5fe1e8f0c896ee7442b62408d8d1"
+    },
+    "reports/05_08_validation/gru4rec_validation.json": {
+      "bytes": 41758,
+      "sha256": "06b002307cad069fcc2b706f4a6022e16ecd5c77c2bcf0902b3ad8274170fbf8"
+    },
+    "models/gru4rec/model.pt": {
+      "bytes": 192840657,
+      "sha256": "d03ff848383423705c91eb31d84690222f27a35e36d03b9765c35a9131d7eb48"
+    },
+    "models/gru4rec/config.json": {
+      "bytes": 352,
+      "sha256": "027c097451924f6e8d83ccd32e9078bc3cd58d2ac8839b6a968858cdde481eaf"
+    },
+    "models/gru4rec_item/model.pt": {
+      "bytes": 192837781,
+      "sha256": "720a17f44bdb2c9905fe571120ed25785cf01339a79e5628cf28a84ab2054757"
+    },
+    "models/gru4rec_item/config.json": {
+      "bytes": 387,
+      "sha256": "9da9691acf894e65cf657510137ca5a127964b28949e6fc9486d45cc92fadc5d"
+    },
+    "models/session60/gru4rec/model.pt": {
+      "bytes": 192840657,
+      "sha256": "27b369892ac14c26212c1bec16e36c127b59a971fcfadc9b6c021d1ec1d6c377"
+    },
+    "models/session60/gru4rec/config.json": {
+      "bytes": 397,
+      "sha256": "632a4641c07bcfdce2bfd59616542c9334029bff9e85dfd12af92ddda1f454f4"
+    },
+    "models/session60/gru4rec_item/model.pt": {
+      "bytes": 192837781,
+      "sha256": "aa3f92d471b0ccbf499a8fa18d9a635853a3d38cad90cb134cf7a1070ac05906"
+    },
+    "models/session60/gru4rec_item/config.json": {
+      "bytes": 408,
+      "sha256": "8cab69e692a2bab2f6eb305641345c343fb4961518525f1456ea2eafb2ce3f97"
+    }
+  }
+}

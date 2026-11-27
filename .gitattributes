@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.docx binary
+*.pptx binary
+*.parquet binary
+*.ipynb filter=nbstripout
+*.ipynb diff=ipynb

@@ -1,0 +1,172 @@
+{
+  "generated_at_utc": "2026-11-23T09:18:31.434423+00:00",
+  "python_version": "3.14.5",
+  "pandas_version": "3.0.3",
+  "pyarrow_version": "25.0.1",
+  "notebook": "notebooks/03_lich_su_thuoc_tinh_va_catalog.ipynb",
+  "protocol": {
+    "path": "configs/protocol.json",
+    "version": "1.1.0",
+    "bytes": 7925,
+    "sha256": "82e5628fd967822b7f2feb4df071b245ebe57e58f56eaf4d834794d8c970259d"
+  },
+  "inputs": {
+    "data/raw/item_properties_part1.csv": {
+      "bytes": 484315749,
+      "sha256": "30aad5aeca58b2dc27dcc73e1708565f5818e45adb3eb57401f91e87355b0b81"
+    },
+    "data/raw/item_properties_part2.csv": {
+      "bytes": 408929907,
+      "sha256": "d5e7d1a91dc40f522aeb596b267e6c87d8aed689a7192d12369cfb165eb987e5"
+    },
+    "data/raw/category_tree.csv": {
+      "bytes": 14454,
+      "sha256": "94e865eb0a3d48cbbfe3b79079018dd92509315c88f5fd8d00d0b4b5af434f5b"
+    },
+    "data/raw/events.csv": {
+      "bytes": 94237913,
+      "sha256": "3745aa83238b1e6d44d8fda209807899f420084398f94ddf745f3cbcfecbf9e7"
+    },
+    "data/processed/events_sessionized.parquet": {
+      "bytes": 90215429,
+      "sha256": "0f87faef75ec55595cf66aa37113cb76019ed8f35a9935382ab5471531d88759"
+    }
+  },
+  "property_files": {
+    "item_properties_part1.csv": {
+      "rows": 10999999,
+      "missing": {
+        "timestamp": 0,
+        "itemid": 0,
+        "property": 0,
+        "value": 0
+      },
+      "invalid_timestamp": 0,
+      "invalid_itemid": 0
+    },
+    "item_properties_part2.csv": {
+      "rows": 9275903,
+      "missing": {
+        "timestamp": 0,
+        "itemid": 0,
+        "property": 0,
+        "value": 0
+      },
+      "invalid_timestamp": 0,
+      "invalid_itemid": 0
+    }
+  },
+  "property_rows": 20275902,
+  "absolute_duplicate_rows_across_files": 0,
+  "category_tree": {
+    "categories": 1669,
+    "roots": 25,
+    "duplicate_ids": 0,
+    "cycles": 0,
+    "parents_outside_tree": 0,
+    "max_depth": 5
+  },
+  "history": {
+    "kept_updates": 2291853,
+    "by_property": {
+      "available": 1503639,
+      "categoryid": 788214
+    },
+    "conflicts_same_item_property_timestamp": 0,
+    "rows_sharing_item_property_timestamp": 0,
+    "items_with_history": 417053,
+    "categories_outside_tree": 30,
+    "items_with_outside_categories": 137,
+    "items_with_outside_categories_in_events": 0,
+    "timestamp_min_utc": "2015-05-10T03:00:00+00:00",
+    "timestamp_max_utc": "2015-09-13T03:00:00+00:00"
+  },
+  "catalog": {
+    "catalog_items": 466868,
+    "events_items": 235061,
+    "events_items_without_metadata": 49815,
+    "property_only_items": 231807,
+    "items_without_known_at": 2,
+    "first_property_utc": "2015-05-10T03:00:00+00:00",
+    "raw_events_before_first_property": 137193,
+    "usable_events_before_item_first_property": 393155
+  },
+  "expected_vs_observed": {
+    "property_rows": {
+      "expected": 20275902,
+      "observed": 20275902
+    },
+    "kept_updates": {
+      "expected": 2291853,
+      "observed": 2291853
+    },
+    "events_items": {
+      "expected": 235061,
+      "observed": 235061
+    },
+    "events_items_without_metadata": {
+      "expected": 49815,
+      "observed": 49815
+    },
+    "categories": {
+      "expected": 1669,
+      "observed": 1669
+    },
+    "roots": {
+      "expected": 25,
+      "observed": 25
+    },
+    "categories_outside_tree": {
+      "expected": 30,
+      "observed": 30
+    },
+    "items_with_outside_categories": {
+      "expected": 137,
+      "observed": 137
+    },
+    "raw_events_before_first_property": {
+      "expected": 137193,
+      "observed": 137193
+    }
+  },
+  "known_at_rule": {
+    "train": "known_at_train_ms = min(first train event, first property record of any property)",
+    "train_validation": "known_at_trainval_ms = min(first train/validation event, first property record)"
+  },
+  "artifacts": {
+    "data/processed/item_property_history.parquet": {
+      "rows": 2291853,
+      "bytes": 7059004,
+      "sha256": "7f863e97599844b5008d29e9a75162cfdea2e4dc2cc43b5856f5e317fb0d8685",
+      "content_sha256": "36928034d36476904bb76bf33de81ec0c3bba59b211cfd2ca9eeab359484cf17",
+      "content_key": [
+        "itemid",
+        "timestamp",
+        "property",
+        "source_part"
+      ],
+      "parquet_roundtrip_verified": true
+    },
+    "data/processed/category_tree.parquet": {
+      "rows": 1669,
+      "bytes": 17699,
+      "sha256": "e1d3f4db5ee6b1db2761073320201b7b9556d38ce257cb8daa97b5e089e437c8",
+      "content_sha256": "ae7d0af7b9e08b66b22363669f0f37db49041c4c600a799a6ce78a6e8343abce",
+      "content_key": [
+        "categoryid"
+      ],
+      "parquet_roundtrip_verified": true
+    },
+    "data/processed/item_catalog.parquet": {
+      "rows": 466868,
+      "bytes": 11034501,
+      "sha256": "762099371cb8481a430c3a5f076b059d4ade2ac3579d3ec1eff46f8dc13e6b52",
+      "content_sha256": "9ecd6f8bd12a02dcbdd1655300ba624c79599db30eff31e8dc17e02a5a16981b",
+      "content_key": [
+        "itemid"
+      ],
+      "parquet_roundtrip_verified": true
+    }
+  },
+  "status": "PASS"
+}
