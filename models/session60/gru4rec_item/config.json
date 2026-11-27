@@ -1,0 +1,21 @@
+{
+  "name": "bpr-max_official_item_only",
+  "hidden": 224,
+  "batch_size": 80,
+  "n_neg": 2048,
+  "constrained": true,
+  "dropout_embed": 0.5,
+  "dropout": 0.05,
+  "lr": 0.002,
+  "sample_alpha": 0.5,
+  "bpreg": 1.0,
+  "elu": 0.5,
+  "loss": "bpr-max",
+  "n_items": 212917,
+  "epochs": 2,
+  "seed": 2026,
+  "max_len": 51,
+  "vocabulary": "train (60-minute sessions)",
+  "width": 200,
+  "use_behavior": false
+}

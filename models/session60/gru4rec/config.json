@@ -16,5 +16,6 @@
   "seed": 2026,
   "max_len": 51,
   "vocabulary": "train (60-minute sessions)",
-  "width": 200
+  "width": 200,
+  "use_behavior": true
 }
