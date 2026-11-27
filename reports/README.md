@@ -7,7 +7,6 @@ Mỗi thư mục do đúng một notebook (hoặc script) ghi ra; số đầu t�
 | `01_events_clean/` | notebook 01 | Số dòng, dòng trùng, mã băm của `events_clean.parquet` |
 | `02_session_split/` | notebook 02 | Số phiên, nhóm, mốc chia train / validation / test |
 | `02_data_validation/` | notebook `kiem_tra_ket_qua_xu_ly` | 36 phép kiểm tra độc lập cho bước 01–02 (`status: PASS`) |
-| `02_gru_readiness/` | `scripts/audit_gru_readiness.py` | Khảo sát dữ liệu trước khi huấn luyện GRU4Rec; notebook 04 đối chiếu với số liệu này |
 | `03_metadata/` | notebook 03 | Lịch sử danh mục / tình trạng hàng, cây danh mục |
 | `04_samples/` | notebook 04 | Vocabulary và các cặp prefix → target của mỗi tập |
 | `05_08_validation/` | notebook 05–07 | Kết quả chọn cấu hình trên validation, mỗi họ mô hình một tệp `*_validation.json` (giữ tên cũ; notebook 08 SR-GNN gỡ ở v1.3.1, `spop_validation.json` gỡ ở v1.3.2) |

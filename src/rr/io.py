@@ -29,7 +29,6 @@ REPORT_DIRS = {
     "events_clean": "01_events_clean",        # notebook 01
     "session_split": "02_session_split",      # notebook 02
     "data_validation": "02_data_validation",  # notebook kiem_tra_ket_qua_xu_ly
-    "gru_readiness": "02_gru_readiness",      # scripts/audit_gru_readiness.py
     "metadata": "03_metadata",                # notebook 03
     "samples": "04_samples",                  # notebook 04
 }
