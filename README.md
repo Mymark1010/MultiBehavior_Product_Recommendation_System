@@ -37,7 +37,7 @@ g1: xem A        g2: xem B        g3: thêm giỏ B + xem C
 ├── data/                     dữ liệu (không đưa lên git, xem data/README.md)
 │   ├── raw/                  4 tệp CSV gốc từ Kaggle (chỉ đọc)
 │   └── processed/            dữ liệu đã xử lý (Parquet) do notebook sinh ra
-├── notebooks/                các bước của pipeline, chạy theo số thứ tự 01 → 13
+├── notebooks/                các bước của pipeline, chạy theo số thứ tự 01 → 12
 ├── src/rr/                   code dùng chung cho notebook 03 trở đi (đọc/ghi, metric, mô hình)
 ├── tests/                    kiểm thử cho src/rr (python -m pytest tests)
 ├── models/                   cấu hình mô hình đã huấn luyện (trọng số không đưa lên git, xem models/README.md)
@@ -78,7 +78,6 @@ Không có notebook 08: SR-GNN đã được gỡ khỏi phạm vi ở protocol 
 | [10](notebooks/10_thuc_nghiem_cuoi_test.ipynb) | Đóng băng cấu hình, diễn tập trên validation, rồi chạy test **đúng một lần** | `reports/10_final/` |
 | [11](notebooks/11_demo.ipynb) | Demo: nhập một đoạn phiên, nhận 20 gợi ý | bảng `rank, item_id, score, category_id, is_fallback` |
 | [12](notebooks/12_ablation_du_lieu.ipynb) | Phân tích phụ: khách hoạt động bất thường, các bước lặp liên tiếp | `reports/12_data_ablation/` |
-| [13](notebooks/13_gru4rec_chinh_thuc_validation.ipynb) | Kiểm chứng: chạy GRU4Rec **bản chính thức** của tác giả trên cùng bộ chia và bộ chấm, chỉ trên validation. Notebook tự tải code chính thức (commit đã ghim) vào `external/` | `reports/13_gru4rec_official/` |
 
 ## 4. Cài đặt và chạy
 
@@ -123,7 +122,7 @@ Lưu ý khi chạy:
 - **Notebook 10** chạy hai lần:
   - lần đầu là diễn tập trên validation: `RR_FINAL_SPLIT=validation jupyter nbconvert ...`;
   - lần sau mới là test thật. Lần chạy test bị chặn nếu chưa có bản diễn tập đúng cấu hình, và bị chặn nếu test đã chạy rồi.
-- **Theo dõi tiến độ** các notebook chạy lâu (07–10, 12, 13): đặt `RR_PROGRESS_LOG=<đường dẫn tệp>`, mỗi bước sẽ ghi thêm một dòng vào tệp đó.
+- **Theo dõi tiến độ** các notebook chạy lâu (07–10, 12): đặt `RR_PROGRESS_LOG=<đường dẫn tệp>`, mỗi bước sẽ ghi thêm một dòng vào tệp đó.
 - **Thời gian tham khảo** trên laptop 8 luồng: các notebook 01–04 chạy vài phút mỗi notebook. Các notebook 07–10 chạy vài giờ mỗi notebook, vì phải huấn luyện mạng nơ-ron trên CPU.
 
 ## 5. Nguyên tắc đánh giá
