@@ -1,6 +1,6 @@
 # Đánh giá: kết quả thực nghiệm và đối chiếu với các công bố
 
-Tài liệu tổng hợp kết quả của mọi phương pháp theo giao thức [`configs/protocol.json`](../configs/protocol.json) (v1.3.2, 27/11/2026): chọn cấu hình trên **Validation** (notebook 05–07, 09), chấm **Test một lần duy nhất** (notebook 10), rồi đặt cạnh số liệu của 2 công bố trên RetailRocket (Ludewig et al. 2021; Shehzad & Jannach 2024). Mọi report nguồn trong `reports/` đều `PASS`; bộ kiểm thử 53/53 `pytest` đạt.
+Tài liệu tổng hợp kết quả của mọi phương pháp theo giao thức [`configs/protocol.json`](../configs/protocol.json) (v1.3.2, 27/11/2026): chọn cấu hình trên **Validation** (notebook 05–07, 09), chấm **Test một lần duy nhất** (notebook 10), rồi đặt cạnh số liệu của 2 công bố trên RetailRocket (Ludewig et al. 2021; Shehzad & Jannach 2024), kèm một mốc tuyệt đối của GRU4Rec bản chính thức (Hidasi & Czapp 2023). Mọi report nguồn trong `reports/` đều `PASS`; bộ kiểm thử 53/53 `pytest` đạt.
 
 Tài liệu liên quan: [Data.md](Data.md) (dữ liệu, tiền xử lý) • [Phương pháp.md](<Phương pháp.md>) (công thức, cài đặt) • số liệu gốc: [`reports/10_final/`](../reports/10_final/BAO_CAO_KET_QUA.md).
 
@@ -181,15 +181,28 @@ So thứ hạng **bên trong** từng nghiên cứu thì công bằng hơn so s�
 | Ludewig 2021 | STAN ≈ VSTAN > SKNN > GRU4Rec | −0,0399 | −0,0263 |
 | Shehzad 2024 | VSTAN > STAN (không có GRU4Rec) | — | — |
 
-### 3.4. Nhận định
+### 3.4. Mốc tham chiếu tuyệt đối: GRU4Rec chính thức (Hidasi & Czapp 2023)
+
+Hidasi & Czapp (RecSys 2023) chỉ chạy GRU4Rec, không có mô hình đối chứng nào (không kNN, không Popularity), nên bài này **không** được đưa vào bảng thứ hạng ở §3.2–3.3. Bài chỉ dùng làm mốc tuyệt đối cho GRU4Rec bản chính thức với cấu hình gần như trùng dự án (BPR-max, constrained embedding, hidden 224, batch 80, 2.048 mẫu âm).
+
+| Nguồn | Hàm mất mát | MRR@20 | HR@20 (= Recall@20) |
+| --- | --- | ---: | ---: |
+| Hidasi & Czapp 2023, Bảng 3 (RetailRocket, bản chính thức đủ tính năng) | BPR-max | 0,2131 | 0,5187 |
+| Hidasi & Czapp 2023, Bảng 3 | Cross-entropy | 0,2012 | 0,4953 |
+| Dự án, Test 30' refit (GRU4Rec gốc) | BPR-max | 0,3299 | 0,5106 |
+
+Giao thức của bài khác dự án: chỉ dùng `view`, phiên cắt sau **1 giờ**, **gộp lượt xem lặp liên tiếp** ((i, i, j) → (i, j)), lọc lặp item < 5 lần và phiên < 2, test là **7 ngày cuối** (29.148 sự kiện), bỏ qua item test không có trong train. README của repo `hidasib/GRU4Rec_PyTorch_Official` báo 0,2175 / 0,5186 cho cùng paramfile RetailRocket (lần chạy khác, README lưu ý có thể lệch vài phần trăm).
+
+### 3.5. Nhận định
 
 1. **Thứ tự trong nhóm kNN khớp văn liệu.** Dự án có VSTAN ≈ STAN > SKNN, giống Ludewig 2021. Shehzad 2024 cũng xếp VSTAN đứng đầu RETAIL.
 2. **GRU4Rec đảo chiều so với Ludewig 2021.** Ở Ludewig, GRU4Rec thua VSTAN (−0,0399 MRR@20); ở dự án, GRU4Rec thắng ở cả Validation và Test (+0,0197 và +0,0184). Shehzad 2024 không chạy GRU4Rec nên không đối chiếu được điểm này. Dự án chưa kiểm chứng nguyên nhân; một lý giải khả dĩ là cấu hình GRU4Rec (BPR-max, constrained embedding, 2.048 mẫu âm), vì riêng việc đổi hàm mất mát đã tạo chênh lệch lớn: BPR-max hơn cross-entropy +0,0371 NDCG@20 trên Validation (mục 2.5).
 3. **HR@20 tuyệt đối thấp hơn cả hai công bố** (0,49–0,54 so với 0,57–0,59 ở Ludewig và 0,93–0,98 ở Shehzad), vì giao thức của dự án khắt khe hơn: không lọc item hiếm, giữ 9,33% target Test là item mới trong mẫu số, và chấm trên 15,4 ngày thay vì 1–2 ngày.
+4. **So với GRU4Rec chính thức (§3.4): HR@20 gần như bằng nhau, MRR@20 của dự án cao hơn rõ** (0,5106 so với 0,5187; 0,3299 so với 0,2131). Lý giải khả dĩ là giao thức: Hidasi & Czapp gộp lượt xem lặp liên tiếp, còn dự án giữ (40,2% target Test là target lặp, NDCG@20 ở nhóm này ~0,75), nên nhiều target "xem lại item vừa xem" dễ đoán và thường đứng hạng đầu. Bài này cũng cho thấy các bản GRU4Rec của bên thứ ba thấp hơn bản chính thức 18–91% trên RetailRocket, là lý do dự án tự cài theo đúng bộ tính năng chính thức.
 
-### 3.5. Phương pháp chưa có số liệu đối chiếu
+### 3.6. Phương pháp chưa có số liệu đối chiếu
 
-Popularity (Test 30' refit 0,0041) và GRU4Rec đa hành vi (Test 30' refit 0,3721; mở rộng riêng của dự án) không có số liệu tương đương trong 2 nguồn trên, nên không đặt vào bảng đối chiếu.
+Popularity (Test 30' refit 0,0041) và GRU4Rec đa hành vi (Test 30' refit 0,3721; mở rộng riêng của dự án) không có số liệu tương đương trong các nguồn trên, nên không đặt vào bảng đối chiếu.
 
 ---
 

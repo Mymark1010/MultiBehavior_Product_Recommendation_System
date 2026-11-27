@@ -86,7 +86,7 @@ với lưới tìm kiếm trên Validation: $w_{\text{view}} = 1$, $w_{\text{add
 
 ## 5. Mô hình chính: GRU4Rec gốc và GRU4Rec đa hành vi (`src/rr/gru.py`, Notebook `07` & `09`)
 
-Cài đặt tự xây dựng bằng PyTorch trên CPU theo đúng tập tính năng chuẩn của bản GRU4Rec chính thức (`hidasib/GRU4Rec_PyTorch_Official`; hàm mất mát BPR-max của Hidasi & Karatzoglou, CIKM 2018), mở rộng để xử lý **nhóm timestamp** và tách trực tiếp nhánh hành vi.
+Cài đặt tự xây dựng bằng PyTorch trên CPU theo đúng tập tính năng chuẩn của bản GRU4Rec chính thức (`hidasib/GRU4Rec_PyTorch_Official`, Hidasi & Czapp, RecSys 2023; hàm mất mát BPR-max của Hidasi & Karatzoglou, CIKM 2018), mở rộng để xử lý **nhóm timestamp** và tách trực tiếp nhánh hành vi. Dự án không dùng các bản cài đặt có sẵn của bên thứ ba vì Hidasi & Czapp (2023) chỉ ra rằng không bản nào hỗ trợ constrained embedding, phần lớn có lỗi, và trên RetailRocket chúng thấp hơn bản chính thức 18–91% (Recall@20 / MRR@20).
 
 ### 5.1. Kiến trúc mạng
 
@@ -174,4 +174,5 @@ Chỉ tệp cấu hình `config.json` được theo dõi trên Git; tệp trọn
 5. **Garg, D., Gupta, P., Malhotra, P., Vig, L., & Shroff, G. (2019).** *Sequence and Time Aware Neighborhood for Session-based Recommendations: STAN.* ACM SIGIR 2019.
 6. **Ren, P., Chen, Z., Li, J., Ren, Z., Ma, J., & de Rijke, M. (2019).** *RepeatNet: A Repeat Aware Neural Recommendation Machine for Session-based Recommendation.* AAAI 2019.
 7. **Ludewig, M., Mauro, N., Latifi, S., & Jannach, D. (2021).** *Empirical analysis of session-based recommendation algorithms.* UMUAI, 31, 149–181.
-8. **Shehzad, F., & Jannach, D. (2024).** *Performance comparison of session-based recommendation algorithms based on GNNs.* ECIR 2024.
+8. **Hidasi, B., & Czapp, Á. T. (2023).** *The Effect of Third Party Implementations on Reproducibility.* ACM RecSys 2023. https://doi.org/10.1145/3604915.3609487
+9. **Shehzad, F., & Jannach, D. (2024).** *Performance comparison of session-based recommendation algorithms based on GNNs.* ECIR 2024.
