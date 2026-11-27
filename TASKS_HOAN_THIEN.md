@@ -186,15 +186,9 @@ Phân tích phụ sau rà soát dữ liệu; **không đổi giao thức chính*
   - Popularity và VSTAN (chuỗi sknn → stan → vstan) ở 60 phút.
 - Đầu ra: `data/processed/session60/`, `models/gru4rec_item/`, `models/session60/`, `reports/09_validation_30_60/metrics.json`.
 
-### [x] T17. Notebook 13 — kiểm chứng GRU4Rec bản chính thức trên validation (người dùng duyệt 26/11/2026)
+### [–] T17. Notebook 13 — kiểm chứng GRU4Rec bản chính thức trên validation — đã gỡ (27/11/2026)
 
-Theo review báo cáo phương pháp: chạy `hidasib/GRU4Rec_PyTorch_Official` (commit `d1fc311`) trên chính bộ chia của dự án để kiểm chứng GRU4Rec tự cài.
-
-- Code chính thức không commit (license nghiên cứu/giáo dục): notebook tải vào `external/` (gitignore), kiểm tra SHA-256. Cầu nối `src/rr/official_gru.py`, test `tests/test_official_gru.py`.
-- Cấu hình: paramfile `retailrocket_bprmax_shared_best` giữ nguyên, 10 epoch; chấm NDCG@20 validation sau mỗi epoch.
-- Người dùng chốt: sự kiện cùng timestamp xếp theo `event_id` (chỉ cho notebook này). Bản vá duy nhất: `_init_numpy_weights` tính như NumPy 1.
-- Tiêu chí: vòng lặp từng epoch cho trọng số trùng `fit()` gốc; cùng query, bộ lọc, fallback, metric với notebook 07/09; paired bootstrap với GRU4Rec gốc và đa hành vi; không đọc test. Đầu ra `reports/13_gru4rec_official/metrics.json`.
-- Kết quả (27/11/2026, `status: PASS`): bản chính thức đạt NDCG@20 validation 0,3888 sau 10 epoch (tăng đều, bão hòa từ epoch 7), thấp hơn GRU4Rec gốc của dự án 0,3951 (Δ −0,0063, CI 95% [−0,0075; −0,0051]). Bản chính thức tốt hơn ở target mới (0,146 so với 0,119) và HR@20 (0,559 so với 0,536), kém ở target lặp (0,722 so với 0,774).
+Đã chạy ngày 27/11/2026 (`status: PASS`, chỉ train và validation, không đọc test): bản chính thức đạt NDCG@20 validation 0,3888 sau 10 epoch, GRU4Rec gốc của dự án 0,3951 (Δ −0,0063, CI 95% [−0,0075; −0,0051]). Người dùng yêu cầu gỡ notebook 13 cùng `external/`, `src/rr/official_gru.py`, `tests/test_official_gru.py`, `reports/13_gru4rec_official/` và `models/gru4rec_official/` ngày 27/11/2026; kết quả trên chỉ còn trong lịch sử git (commit `a2bcbc3`). `configs/protocol.json` vẫn nhắc notebook 13 nhưng không sửa, vì notebook 10 và 12 kiểm tra mã băm của tệp này.
 
 ---
 

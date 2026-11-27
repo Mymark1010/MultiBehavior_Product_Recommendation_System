@@ -8,7 +8,6 @@ Chỉ `config.json` được đưa lên git. Trọng số (`model.pt`) lớn nê
 | `gru4rec_item/` | GRU4Rec gốc (chỉ embedding sản phẩm) | 30 phút | 09 |
 | `session60/gru4rec/` | GRU4Rec đa hành vi | 60 phút | 09 |
 | `session60/gru4rec_item/` | GRU4Rec gốc | 60 phút | 09 |
-| `gru4rec_official/` | GRU4Rec bản chính thức của tác giả (kiểm chứng, không dùng cho test) | 30 phút | 13 |
 
 Mọi mô hình trong bảng chỉ fit trên train. Biến thể fit lại trên train + validation được huấn luyện ngay trong notebook 10 và không lưu ra đây.
 
