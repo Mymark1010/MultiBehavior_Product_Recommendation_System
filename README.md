@@ -21,7 +21,7 @@ Tại cuối g₂, đầu vào là tiền tố (g₁, g₂), đáp án cần d�
 | --- | --- |
 | **[`docs/Data.md`](docs/Data.md)** | Đặc điểm bộ dữ liệu RetailRocket (2,756M sự kiện, 20,28M thuộc tính), pipeline tiền xử lý 5 bước, chia tập theo thời gian 80/10/10 chống rò rỉ, đặc tả Input–Output và 6 quyết định giao thức (D1–D6). |
 | **[`docs/Phương pháp.md`](<docs/Phương pháp.md>)** | Công thức toán học và chi tiết cài đặt mốc cơ sở (`Popularity`), họ láng giềng theo phiên (`SKNN → STAN → VSTAN`), kiến trúc `GRU4Rec gốc` vs `GRU4Rec đa hành vi` (`BPR-max`), siêu tham số và tài liệu tham khảo. |
-| **[`docs/Đánh giá.md`](<docs/Đánh giá.md>)** | Bộ thang đo tại $K = 20$ (`HR`, `Recall`, `MRR`, `NDCG@20`), toàn bộ kết quả Validation & Test, kiểm định Paired Bootstrap 95% và đối chiếu 2 công bố khoa học trên RetailRocket (`Ludewig 2021`, `Shehzad 2024`). |
+| **[`docs/Đánh giá.md`](<docs/Đánh giá.md>)** | Bộ thang đo tại $K = 20$ (`HR`, `Recall`, `MRR`, `NDCG@20`), toàn bộ kết quả Validation & Test kèm khoảng tin cậy 95%, đối chiếu 2 công bố khoa học trên RetailRocket (`Ludewig 2021`, `Shehzad 2024`) và mốc tuyệt đối của GRU4Rec bản chính thức (`Hidasi & Czapp 2023`). |
 | **[Sơ đồ pipeline tổng thể](docs/pipeline_tong_the.png)** | Sơ đồ 4 tầng từ xử lý dữ liệu, mô hình hóa, 2 khía cạnh đánh giá đến hệ thống chỉ số tại $K = 20$. |
 | **[Slide báo cáo (PPTX)](docs/BAO_CAO_TIEN_DO_PROJECT3_HUST_27_11_v3.pptx)** | Bản trình bày tổng quan tiến độ, kết quả Test và đối chiếu công bố khoa học. |
 
@@ -40,7 +40,7 @@ Tại cuối g₂, đầu vào là tiền tố (g₁, g₂), đáp án cần d�
 
 **Hai kết luận rút gọn (theo 2 khía cạnh đánh giá trọng tâm):**
 - **Cấu trúc & thứ tự trong phiên quyết định chất lượng:** `GRU4Rec` dẫn đầu tuyệt đối trên cả Validation và Test, vượt `VSTAN` (`+0,019` `NDCG@20`) và vượt xa `Popularity` (`0,0041`), bứt phá rõ nhất ở **phiên ngắn** (prefix `1` và `2–4`, ~74% truy vấn) và dẫn đầu ở cả **target mới** lẫn **target lặp**.
-- **Tín hiệu đa hành vi & ngưỡng phiên cho cải thiện nhỏ:** `GRU4Rec đa hành vi` vượt bản gốc có ý nghĩa thống kê khoảng `+0,0008` đến `+0,0011` `NDCG@20` (chủ yếu ở target lặp, do `96,68%` log là lượt xem); mở rộng ngưỡng phiên `30' → 60'` tăng nhẹ ~`+0,001` và giữ nguyên thứ hạng mô hình.
+- **Tín hiệu đa hành vi & ngưỡng phiên cho cải thiện nhỏ:** `GRU4Rec đa hành vi` vượt bản gốc khoảng `+0,0008` đến `+0,0011` `NDCG@20` trên Test (khoảng tin cậy 95% đều > 0; chủ yếu ở target lặp, do `96,68%` log là lượt xem); mở rộng ngưỡng phiên `30' → 60'` tăng nhẹ ~`+0,001` và giữ nguyên thứ hạng mô hình.
 
 ---
 

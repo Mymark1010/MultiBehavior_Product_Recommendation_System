@@ -9,7 +9,7 @@ Tài liệu liên quan: [Data.md](Data.md) (dữ liệu, tiền xử lý) • [P
 ## Tóm tắt
 
 - **GRU4Rec dẫn đầu ở mọi giai đoạn** (Validation, Test, phiên 30' và 60'). Trên Test, nó hơn VSTAN khoảng +0,019 NDCG@20 và vượt xa Popularity (0,0041), tạo cách biệt rõ nhất ở **phiên ngắn** (prefix 1 và 2–4, ~74% truy vấn) và dẫn đầu ở cả **target mới** lẫn **target lặp**.
-- **Thêm thông tin đa hành vi chỉ giúp rất ít:** trên Test (refit), chênh lệch giữa GRU4Rec đa hành vi và GRU4Rec gốc là +0,0008 đến +0,0011 NDCG@20 (có ý nghĩa thống kê, chủ yếu ở target lặp); trên Validation thì không khác biệt, còn nhóm Session-KNN trọng số đều tốt hơn trọng số hành vi.
+- **Thêm thông tin đa hành vi chỉ giúp rất ít:** trên Test (refit), chênh lệch giữa GRU4Rec đa hành vi và GRU4Rec gốc là +0,0008 đến +0,0011 NDCG@20 (khoảng tin cậy 95% đều > 0, chủ yếu ở target lặp); trên Validation thì không khác biệt, còn nhóm Session-KNN trọng số đều tốt hơn trọng số hành vi.
 - **Phiên 60' nhỉnh hơn phiên 30' một chút** (khoảng +0,001 trên cùng bộ truy vấn), thứ hạng các mô hình hoàn toàn không đổi.
 - **So với các bài báo:** thứ tự trong nhóm kNN (VSTAN ≈ STAN > SKNN) khớp với văn liệu. Khác với benchmark của Ludewig et al. (2021), GRU4Rec của dự án vượt VSTAN. HR@20 tuyệt đối thấp hơn cả hai công bố vì dự án không lọc item hiếm và giữ item mới trong mẫu số.
 
@@ -45,7 +45,7 @@ Các mô hình được đánh giá tập trung trên **2 khía cạnh trọng t
 
 **Nguyên tắc chấm điểm:**
 - **Không bỏ truy vấn khó:** mọi truy vấn có target đều nằm trong mẫu số (kể cả item ngoài vocabulary — tính 0 điểm).
-- **Kiểm định thống kê:** bootstrap 95% theo đơn vị truy vấn (1.000 lần lấy mẫu, seed 2026); khi so hai mô hình hoặc hai ngưỡng phiên trên cùng bộ truy vấn, dùng paired bootstrap cho $\Delta = \text{NDCG}@20(A) - \text{NDCG}@20(B)$ và báo $p(\Delta \le 0)$.
+- **Khoảng tin cậy 95%:** khi so hai mô hình hoặc hai ngưỡng phiên trên cùng bộ truy vấn, báo chênh lệch $\Delta = \text{NDCG}@20(A) - \text{NDCG}@20(B)$ kèm khoảng tin cậy 95% (paired bootstrap theo truy vấn, 1.000 lần lấy mẫu). Chênh lệch được coi là có thật khi khoảng tin cậy không chứa 0.
 - **Test chạy một lần:** lần chạy Test v1.3.2 đầu tiên (26/11) bị ngắt giữa chừng, không do lỗi code. Lần chạy lại ngày 27/11 dùng đúng cấu hình đóng băng (`frozen.json`) và cho NDCG@20 trùng khớp các tổ hợp đã in trước khi ngắt.
 
 ---
@@ -96,18 +96,18 @@ NDCG@20, Test 30' (`train_validation_refit`). Tỷ lệ truy vấn theo độ d�
 
 ### 2.4. Khía cạnh 2: Kiểm định tín hiệu đầu vào (Đa hành vi & Ngưỡng 30'/60')
 
-Kiểm định paired bootstrap trên cùng bộ truy vấn (NDCG@20, Test `train_validation_refit`).
+Chênh lệch NDCG@20 trên cùng bộ truy vấn, kèm khoảng tin cậy 95% (Test `train_validation_refit`).
 
 **A. Thông tin đa hành vi có giúp không? (GRU4Rec đa hành vi − GRU4Rec gốc, RQ1)**
 
-| Mô hình fit · bộ truy vấn | Δ | CI 95% | p(Δ ≤ 0) | Kết luận |
-| --- | ---: | :---: | ---: | --- |
-| 30' · q30 | +0,0008 | [+0,0000; +0,0016] | 0,023 | Hơn, có ý nghĩa (p < 0,05) |
-| 30' · q60 | +0,0010 | [+0,0002; +0,0017] | 0,008 | Hơn, có ý nghĩa (p < 0,01) |
-| 60' · q30 | +0,0011 | [+0,0003; +0,0018] | 0,001 | Hơn, có ý nghĩa (p < 0,01) |
-| 60' · q60 | +0,0010 | [+0,0003; +0,0017] | 0,003 | Hơn, có ý nghĩa (p < 0,01) |
+| Mô hình fit · bộ truy vấn | Δ | CI 95% | Kết luận |
+| --- | ---: | :---: | --- |
+| 30' · q30 | +0,0008 | [+0,0000; +0,0016] | Hơn, rất nhỏ (cận dưới sát 0) |
+| 30' · q60 | +0,0010 | [+0,0002; +0,0017] | Hơn, rất nhỏ |
+| 60' · q30 | +0,0011 | [+0,0003; +0,0018] | Hơn, rất nhỏ |
+| 60' · q60 | +0,0010 | [+0,0003; +0,0017] | Hơn, rất nhỏ |
 
-Trên Validation, CI 95% của hiệu này đều chứa 0: 30' Δ = −0,00004 ([−0,00081; +0,00070], p = 0,554); 60' Δ = −0,00060 ([−0,00130; +0,00020], p = 0,929).
+Trên Validation, CI 95% của hiệu này đều chứa 0 (không khác biệt): 30' Δ = −0,00004 [−0,00081; +0,00070]; 60' Δ = −0,00060 [−0,00130; +0,00020].
 
 **B. Phiên 60' hay 30'? (mô hình 60' − mô hình 30' trên cùng bộ truy vấn)**
 
@@ -210,7 +210,7 @@ Popularity (Test 30' refit 0,0041) và GRU4Rec đa hành vi (Test 30' refit 0,37
 
 | Câu hỏi | Kết luận |
 | --- | --- |
-| **RQ1 — Đa hành vi & ngưỡng phiên có giúp không?** | **Cải thiện nhỏ.** Với Session-KNN, trọng số hành vi không giúp (trọng số đều tốt hơn). Với GRU4Rec trên Test, bản đa hành vi hơn bản gốc +0,0008 đến +0,0011 NDCG@20 (p = 0,001–0,023, chủ yếu ở target lặp), còn trên Validation không khác biệt do 96,68% sự kiện là `view`. Nới ngưỡng phiên lên 60' tăng nhẹ ~+0,001 và không đổi thứ hạng mô hình. |
+| **RQ1 — Đa hành vi & ngưỡng phiên có giúp không?** | **Cải thiện nhỏ.** Với Session-KNN, trọng số hành vi không giúp (trọng số đều tốt hơn). Với GRU4Rec trên Test, bản đa hành vi hơn bản gốc +0,0008 đến +0,0011 NDCG@20 (CI 95% > 0, chủ yếu ở target lặp), còn trên Validation không khác biệt do 96,68% sự kiện là `view`. Nới ngưỡng phiên lên 60' tăng nhẹ ~+0,001 và không đổi thứ hạng mô hình. |
 | **RQ2 — Cấu trúc & thứ tự trong phiên có quan trọng không?** | **Có, rõ rệt.** GRU4Rec hơn VSTAN +0,019 trên Test và hơn xa Popularity (0,0041). Lợi thế lớn nhất nằm ở **phiên ngắn** (prefix 1 và 2–4, ~74% truy vấn) và dẫn đầu ở cả **target mới** lẫn **target lặp**. |
 
 **Hạn chế và hướng phát triển**
