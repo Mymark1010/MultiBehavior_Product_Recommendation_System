@@ -8,8 +8,8 @@
   "protocol": {
     "path": "configs/protocol.json",
     "version": "1.3.2",
-    "bytes": 12793,
-    "sha256": "9ec996d68831da8ebcef73c19b4f06aac47fbd3eccbb4607f7114fa5ff1d5367"
+    "bytes": 11670,
+    "sha256": "a8ad97970c7e3fa26acdb21d1288b751d0954a9f759ff2257c756071b29ec58a"
   },
   "scope": {
     "version": "1.3.2",
@@ -80,20 +80,20 @@
       "sha256": "027c097451924f6e8d83ccd32e9078bc3cd58d2ac8839b6a968858cdde481eaf"
     },
     "reports/05_08_validation/popularity_validation.json": {
-      "bytes": 47623,
-      "sha256": "1ef1579031f4b9c7a8527c22a122d1bf19c0cef960d377833d8f11559e40d927"
+      "bytes": 40789,
+      "sha256": "4c8d17eba64756b91c426acc715032ca69537d6a02c119198d57b468c2f0f176"
     },
     "reports/05_08_validation/repeat_last_validation.json": {
-      "bytes": 6044,
-      "sha256": "b1a780e26ae13ad6ea62555f377e0c06b3fb0d9b40ca74141f8e8eff2d85fd8f"
+      "bytes": 3894,
+      "sha256": "1b2e75722a7794befb9a7e9523455f2c5214dfabbcad26eeb808d54ddebd0a02"
     },
     "reports/05_08_validation/knn_validation.json": {
-      "bytes": 109443,
-      "sha256": "b9812c803f98888e438cef47a387a136b24c5fe1e8f0c896ee7442b62408d8d1"
+      "bytes": 91105,
+      "sha256": "b36d411d64fcf9876b898ad0ea6ed71c3c3fedb0cfd7a7821f2dd6220d23e3bf"
     },
     "reports/05_08_validation/gru4rec_validation.json": {
-      "bytes": 41758,
-      "sha256": "06b002307cad069fcc2b706f4a6022e16ecd5c77c2bcf0902b3ad8274170fbf8"
+      "bytes": 23006,
+      "sha256": "070adafb875917ad51ce50c64784be482327b13836878c04645c6e36fda8128e"
     }
   },
   "artifacts": {

@@ -3,24 +3,24 @@
   "split": "validation",
   "files": {
     "configs/protocol.json": {
-      "bytes": 12793,
-      "sha256": "9ec996d68831da8ebcef73c19b4f06aac47fbd3eccbb4607f7114fa5ff1d5367"
+      "bytes": 11670,
+      "sha256": "a8ad97970c7e3fa26acdb21d1288b751d0954a9f759ff2257c756071b29ec58a"
     },
     "reports/09_validation_30_60/metrics.json": {
-      "bytes": 130835,
-      "sha256": "2bdd6837246a20a5c63a8af9b8ef7593ef9ed53428d56045d6bc00054b6b08b0"
+      "bytes": 130834,
+      "sha256": "126f9abc9d131442b597ef8424202bdc95e2a7ee6d3931beebe13290beea2b3a"
     },
     "reports/05_08_validation/popularity_validation.json": {
-      "bytes": 47623,
-      "sha256": "1ef1579031f4b9c7a8527c22a122d1bf19c0cef960d377833d8f11559e40d927"
+      "bytes": 40789,
+      "sha256": "4c8d17eba64756b91c426acc715032ca69537d6a02c119198d57b468c2f0f176"
     },
     "reports/05_08_validation/knn_validation.json": {
-      "bytes": 109443,
-      "sha256": "b9812c803f98888e438cef47a387a136b24c5fe1e8f0c896ee7442b62408d8d1"
+      "bytes": 91105,
+      "sha256": "b36d411d64fcf9876b898ad0ea6ed71c3c3fedb0cfd7a7821f2dd6220d23e3bf"
     },
     "reports/05_08_validation/gru4rec_validation.json": {
-      "bytes": 41758,
-      "sha256": "06b002307cad069fcc2b706f4a6022e16ecd5c77c2bcf0902b3ad8274170fbf8"
+      "bytes": 23006,
+      "sha256": "070adafb875917ad51ce50c64784be482327b13836878c04645c6e36fda8128e"
     },
     "models/gru4rec/model.pt": {
       "bytes": 192840657,

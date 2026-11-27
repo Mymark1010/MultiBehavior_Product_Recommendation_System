@@ -1,8 +1,8 @@
 # Kết quả thực nghiệm cuối trên test
 
-Sinh bởi `notebooks/10_thuc_nghiem_cuoi_test.ipynb` lúc 2026-11-26T19:15:33.564396+00:00, protocol 1.3.2. Bài toán: tương tác kế tiếp. `q30`: 92,468 query theo phiên 30 phút; `q60`: 95,783 query theo phiên 60 phút. Mẫu số gồm cả query có target ngoài vocabulary. Biến thể chính: `train_validation_refit`. Cột (30') là mô hình phiên 30 phút chấm trên `q30`, cột (60') là mô hình phiên 60 phút chấm trên `q60`.
+Sinh bởi `notebooks/10_thuc_nghiem_cuoi_test.ipynb` lúc 2026-11-26T19:15:33.533914+00:00, protocol 1.3.2. Bài toán: tương tác kế tiếp. `q30`: 92,468 query theo phiên 30 phút; `q60`: 95,783 query theo phiên 60 phút. Mẫu số gồm cả query có target ngoài vocabulary. Biến thể đánh giá: `train_validation_refit`.
 
-## Kết quả chính, biến thể `train_validation_refit`
+## Kết quả chính (`train_validation_refit`)
 
 | Mô hình | HR@20 (30') | MRR@20 (30') | NDCG@20 (30') | CI 95% (30') | HR@20 (60') | MRR@20 (60') | NDCG@20 (60') | CI 95% (60') |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -12,28 +12,7 @@ Sinh bởi `notebooks/10_thuc_nghiem_cuoi_test.ipynb` lúc 2026-11-26T19:15:33.5
 | GRU4Rec gốc (chỉ item) | 0.5106 | 0.3299 | 0.3713 | [0.3688; 0.3740] | 0.5111 | 0.3337 | 0.3742 | [0.3717; 0.3769] |
 | GRU4Rec đa hành vi | 0.5104 | 0.3312 | 0.3721 | [0.3696; 0.3747] | 0.5101 | 0.3352 | 0.3752 | [0.3727; 0.3778] |
 
-## Kết quả chính, biến thể `train_only`
-
-| Mô hình | HR@20 (30') | MRR@20 (30') | NDCG@20 (30') | CI 95% (30') | HR@20 (60') | MRR@20 (60') | NDCG@20 (60') | CI 95% (60') |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Popularity | 0.0087 | 0.0032 | 0.0043 | [0.0039; 0.0047] | 0.0087 | 0.0032 | 0.0043 | [0.0040; 0.0047] |
-| Repeat-last | 0.3679 | 0.3080 | 0.3229 | [0.3202; 0.3257] | 0.3738 | 0.3126 | 0.3278 | [0.3252; 0.3308] |
-| VSTAN | 0.4623 | 0.2969 | 0.3345 | [0.3320; 0.3373] | 0.4643 | 0.3008 | 0.3379 | [0.3354; 0.3404] |
-| GRU4Rec gốc (chỉ item) | 0.4807 | 0.3154 | 0.3532 | [0.3507; 0.3557] | 0.4807 | 0.3182 | 0.3553 | [0.3528; 0.3580] |
-| GRU4Rec đa hành vi | 0.4803 | 0.3162 | 0.3537 | [0.3512; 0.3564] | 0.4791 | 0.3176 | 0.3545 | [0.3520; 0.3571] |
-
-## Hiệu ứng hành vi: GRU4Rec đa hành vi − GRU4Rec gốc (NDCG@20, paired bootstrap)
-
-| Ngưỡng fit · biến thể · bộ query | Δ | CI thấp | CI cao | p(không tốt hơn) |
-| --- | --- | --- | --- | --- |
-| 30 · train_only · q30 | 0.0005 | -0.0002 | 0.0012 | 0.0810 |
-| 30 · train_only · q60 | 0.0005 | -0.0002 | 0.0013 | 0.0760 |
-| 30 · train_validation_refit · q30 | 0.0008 | 0.0000 | 0.0016 | 0.0230 |
-| 30 · train_validation_refit · q60 | 0.0010 | 0.0002 | 0.0017 | 0.0080 |
-| 60 · train_only · q30 | -0.0009 | -0.0016 | -0.0001 | 0.9930 |
-| 60 · train_only · q60 | -0.0008 | -0.0015 | -0.0000 | 0.9780 |
-| 60 · train_validation_refit · q30 | 0.0011 | 0.0003 | 0.0018 | 0.0010 |
-| 60 · train_validation_refit · q60 | 0.0010 | 0.0003 | 0.0017 | 0.0030 |
+## Khía cạnh 1: Cấu trúc bên trong phiên (Target mới/lặp & Độ dài prefix)
 
 ### Hai biến thể GRU4Rec theo loại target (`train_validation_refit`, NDCG@20)
 
@@ -44,17 +23,7 @@ Sinh bởi `notebooks/10_thuc_nghiem_cuoi_test.ipynb` lúc 2026-11-26T19:15:33.5
 | GRU4Rec gốc (chỉ item) (60') | 0.3742 | 0.1151 | 0.7494 |
 | GRU4Rec đa hành vi (60') | 0.3752 | 0.1148 | 0.7522 |
 
-## Hiệu ứng ngưỡng phiên trên cùng bộ query: mô hình 60 phút − mô hình 30 phút (`train_validation_refit`, NDCG@20)
-
-| Mô hình | Δ q30 | CI q30 | Δ q60 | CI q60 |
-| --- | --- | --- | --- | --- |
-| Popularity | 0.0000 | [0.0000; 0.0000] | 0.0000 | [0.0000; 0.0000] |
-| Repeat-last | 0.0000 | [0.0000; 0.0000] | 0.0000 | [0.0000; 0.0000] |
-| VSTAN | 0.0012 | [0.0008; 0.0016] | 0.0013 | [0.0010; 0.0017] |
-| GRU4Rec gốc (chỉ item) | 0.0009 | [-0.0000; 0.0018] | 0.0009 | [0.0000; 0.0019] |
-| GRU4Rec đa hành vi | 0.0011 | [0.0002; 0.0021] | 0.0009 | [0.0001; 0.0018] |
-
-## NDCG@20 theo độ dài prefix (`train_validation_refit`)
+### NDCG@20 theo độ dài prefix (`train_validation_refit`)
 
 | Mô hình | 1 | 2-4 | 5-9 | 10+ |
 | --- | --- | --- | --- | --- |
@@ -69,7 +38,7 @@ Sinh bởi `notebooks/10_thuc_nghiem_cuoi_test.ipynb` lúc 2026-11-26T19:15:33.5
 | GRU4Rec gốc (chỉ item) (60') | 0.4341 | 0.3994 | 0.3042 | 0.2169 |
 | GRU4Rec đa hành vi (60') | 0.4353 | 0.4002 | 0.3041 | 0.2184 |
 
-## So với Repeat-last (`train_validation_refit`, NDCG@20, paired bootstrap)
+### So với Repeat-last (`train_validation_refit`, NDCG@20, paired bootstrap)
 
 | Mô hình | Δ | CI |
 | --- | --- | --- |
@@ -82,12 +51,23 @@ Sinh bởi `notebooks/10_thuc_nghiem_cuoi_test.ipynb` lúc 2026-11-26T19:15:33.5
 | GRU4Rec gốc (chỉ item) (60') | 0.0356 | [0.0341; 0.0371] |
 | GRU4Rec đa hành vi (60') | 0.0365 | [0.0350; 0.0380] |
 
-## Thời gian fit (giây)
+## Khía cạnh 2: Thiết kế tín hiệu đầu vào (Đa hành vi & Ngưỡng phiên 30' vs 60')
 
-| Mô hình | 30' train_only | 30' train_validation_refit | 60' train_only | 60' train_validation_refit |
+### Hiệu ứng hành vi: GRU4Rec đa hành vi − GRU4Rec gốc (NDCG@20, paired bootstrap)
+
+| Ngưỡng fit · bộ query | Δ | CI thấp | CI cao | p(không tốt hơn) |
 | --- | --- | --- | --- | --- |
-| Popularity | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
-| Repeat-last | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
-| VSTAN | 6.6000 | 4.0000 | 3.5000 | 3.9000 |
-| GRU4Rec gốc (chỉ item) | 2.0000 | 620.1000 | 1.0000 | 534.1000 |
-| GRU4Rec đa hành vi | 2.3000 | 572.3000 | 1.0000 | 498.0000 |
+| 30 · q30 | 0.0008 | 0.0000 | 0.0016 | 0.0230 |
+| 30 · q60 | 0.0010 | 0.0002 | 0.0017 | 0.0080 |
+| 60 · q30 | 0.0011 | 0.0003 | 0.0018 | 0.0010 |
+| 60 · q60 | 0.0010 | 0.0003 | 0.0017 | 0.0030 |
+
+### Hiệu ứng ngưỡng phiên trên cùng bộ query: mô hình 60 phút − mô hình 30 phút (`train_validation_refit`, NDCG@20)
+
+| Mô hình | Δ q30 | CI q30 | Δ q60 | CI q60 |
+| --- | --- | --- | --- | --- |
+| Popularity | 0.0000 | [0.0000; 0.0000] | 0.0000 | [0.0000; 0.0000] |
+| Repeat-last | 0.0000 | [0.0000; 0.0000] | 0.0000 | [0.0000; 0.0000] |
+| VSTAN | 0.0012 | [0.0008; 0.0016] | 0.0013 | [0.0010; 0.0017] |
+| GRU4Rec gốc (chỉ item) | 0.0009 | [-0.0000; 0.0018] | 0.0009 | [0.0000; 0.0019] |
+| GRU4Rec đa hành vi | 0.0011 | [0.0002; 0.0021] | 0.0009 | [0.0001; 0.0018] |
