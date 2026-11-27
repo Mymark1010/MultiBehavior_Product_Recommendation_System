@@ -1,6 +1,6 @@
 # Đánh giá: kết quả thực nghiệm và đối chiếu với các công bố
 
-Tài liệu tổng hợp kết quả của mọi phương pháp theo giao thức [`configs/protocol.json`](../configs/protocol.json) (v1.3.2, 27/11/2026): chọn cấu hình trên **Validation** (notebook 05–07, 09), chấm **Test một lần duy nhất** (notebook 10), rồi đặt cạnh số liệu của 2 công bố trên RetailRocket (Ludewig et al. 2021; Shehzad & Jannach 2024). Mọi report nguồn trong `reports/` đều `PASS`; bộ kiểm thử 55/55 `pytest` đạt.
+Tài liệu tổng hợp kết quả của mọi phương pháp theo giao thức [`configs/protocol.json`](../configs/protocol.json) (v1.3.2, 27/11/2026): chọn cấu hình trên **Validation** (notebook 05–07, 09), chấm **Test một lần duy nhất** (notebook 10), rồi đặt cạnh số liệu của 2 công bố trên RetailRocket (Ludewig et al. 2021; Shehzad & Jannach 2024). Mọi report nguồn trong `reports/` đều `PASS`; bộ kiểm thử 53/53 `pytest` đạt.
 
 Tài liệu liên quan: [Data.md](Data.md) (dữ liệu, tiền xử lý) • [Phương pháp.md](<Phương pháp.md>) (công thức, cài đặt) • số liệu gốc: [`reports/10_final/`](../reports/10_final/BAO_CAO_KET_QUA.md).
 
@@ -8,8 +8,8 @@ Tài liệu liên quan: [Data.md](Data.md) (dữ liệu, tiền xử lý) • [P
 
 ## Tóm tắt
 
-- **GRU4Rec dẫn đầu ở mọi giai đoạn** (Validation, Test, phiên 30' và 60'). Trên Test, nó hơn VSTAN khoảng +0,019 và hơn Repeat-last khoảng +0,038 NDCG@20, tạo cách biệt rõ nhất ở **phiên ngắn** (prefix 1 và 2–4, ~75% truy vấn) và vượt xa Repeat-last ở **target mới**.
-- **Thêm thông tin đa hành vi chỉ giúp rất ít:** trên Test (refit), chênh lệch giữa GRU4Rec đa hành vi và GRU4Rec gốc là +0,0008 đến +0,0011 NDCG@20 (có ý nghĩa thống kê, chủ yếu ở target lặp); trên Validation thì không khác biệt, còn nhóm kNN trọng số đều tốt hơn trọng số hành vi.
+- **GRU4Rec dẫn đầu ở mọi giai đoạn** (Validation, Test, phiên 30' và 60'). Trên Test, nó hơn VSTAN khoảng +0,019 NDCG@20 và vượt xa Popularity (0,0041), tạo cách biệt rõ nhất ở **phiên ngắn** (prefix 1 và 2–4, ~74% truy vấn) và dẫn đầu ở cả **target mới** lẫn **target lặp**.
+- **Thêm thông tin đa hành vi chỉ giúp rất ít:** trên Test (refit), chênh lệch giữa GRU4Rec đa hành vi và GRU4Rec gốc là +0,0008 đến +0,0011 NDCG@20 (có ý nghĩa thống kê, chủ yếu ở target lặp); trên Validation thì không khác biệt, còn nhóm Session-KNN trọng số đều tốt hơn trọng số hành vi.
 - **Phiên 60' nhỉnh hơn phiên 30' một chút** (khoảng +0,001 trên cùng bộ truy vấn), thứ hạng các mô hình hoàn toàn không đổi.
 - **So với các bài báo:** thứ tự trong nhóm kNN (VSTAN ≈ STAN > SKNN) khớp với văn liệu. Khác với benchmark của Ludewig et al. (2021), GRU4Rec của dự án vượt VSTAN. HR@20 tuyệt đối thấp hơn cả hai công bố vì dự án không lọc item hiếm và giữ item mới trong mẫu số.
 
@@ -20,8 +20,7 @@ Tài liệu liên quan: [Data.md](Data.md) (dữ liệu, tiền xử lý) • [P
 | 1 | **GRU4Rec đa hành vi** | **0,3721** | [0,3696; 0,3747] | 0,5104 | **0,3312** | — |
 | 2 | GRU4Rec gốc (chỉ item) | 0,3713 | [0,3688; 0,3740] | **0,5106** | 0,3299 | −0,0008 |
 | 3 | VSTAN | 0,3528 | [0,3502; 0,3555] | 0,4933 | 0,3115 | −0,0193 |
-| 4 | Repeat-last | 0,3337 | [0,3311; 0,3366] | 0,3817 | 0,3179 | −0,0384 |
-| 5 | Popularity | 0,0041 | [0,0038; 0,0044] | 0,0102 | 0,0025 | −0,3680 |
+| 4 | Popularity | 0,0041 | [0,0038; 0,0044] | 0,0102 | 0,0025 | −0,3680 |
 
 ---
 
@@ -55,20 +54,18 @@ Các mô hình được đánh giá tập trung trên **2 khía cạnh trọng t
 
 ### 2.1. Toàn cảnh NDCG@20 qua Validation và Test
 
-ItemKNN, SKNN và STAN chỉ chạy trên Validation; VSTAN được chọn làm mốc kNN đại diện cho Test (`train_validation_refit`).
+SKNN và STAN chỉ chạy trên Validation để xây dựng chuỗi láng giềng theo phiên; VSTAN được chọn làm mốc kNN đại diện cho Test (`train_validation_refit`).
 
 | Mô hình | Val 30' | Val 60' | **Test 30'** | **Test 60'** |
 | --- | ---: | ---: | ---: | ---: |
 | Popularity | 0,0047 | 0,0047 | **0,0041** | **0,0041** |
-| ItemKNN | 0,0964 | — | — | — |
-| Repeat-last | 0,3578 | 0,3628 | **0,3337** | **0,3387** |
 | SKNN | 0,3671 | — | — | — |
 | STAN | 0,3745 | — | — | — |
 | VSTAN | 0,3747 | 0,3769 | **0,3528** | **0,3559** |
 | GRU4Rec gốc | **0,3951** | **0,3962** | **0,3713** | **0,3742** |
 | GRU4Rec đa hành vi | 0,3950 | 0,3956 | **0,3721** | **0,3752** |
 
-Thứ hạng **giữ nguyên tuyệt đối** từ Validation sang Test ở cả hai ngưỡng 30' và 60': **GRU4Rec > VSTAN > Repeat-last > Popularity**.
+Thứ hạng **giữ nguyên tuyệt đối** từ Validation sang Test ở cả hai ngưỡng 30' và 60': **GRU4Rec > VSTAN > Popularity**.
 
 ### 2.2. Kết quả Test đầy đủ (HR, MRR, NDCG)
 
@@ -77,7 +74,6 @@ Chấm trên tập Test (`train_validation_refit`) — 30': 92.468 truy vấn; 6
 | Mô hình | HR@20 30' | MRR@20 30' | **NDCG@20 30'** | HR@20 60' | MRR@20 60' | **NDCG@20 60'** | CI 95% NDCG 60' |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | :---: |
 | Popularity | 0,0102 | 0,0025 | 0,0041 | 0,0101 | 0,0025 | 0,0041 | [0,0039; 0,0044] |
-| Repeat-last | 0,3817 | 0,3179 | 0,3337 | 0,3874 | 0,3226 | 0,3387 | [0,3359; 0,3416] |
 | VSTAN | 0,4933 | 0,3115 | 0,3528 | 0,4941 | 0,3154 | 0,3559 | [0,3533; 0,3584] |
 | GRU4Rec gốc | **0,5106** | 0,3299 | 0,3713 | **0,5111** | 0,3337 | 0,3742 | [0,3717; 0,3769] |
 | GRU4Rec đa hành vi | 0,5104 | **0,3312** | **0,3721** | 0,5101 | **0,3352** | **0,3752** | [0,3727; 0,3778] |
@@ -89,15 +85,13 @@ NDCG@20, Test 30' (`train_validation_refit`). Tỷ lệ truy vấn theo độ d�
 | Mô hình | Target mới | Target lặp | Prefix 1 | Prefix 2–4 | Prefix 5–9 | Prefix 10+ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Popularity | 0,0022 | 0,0070 | 0,0045 | 0,0046 | 0,0033 | 0,0027 |
-| Repeat-last | 0,0018 | **0,8291** | 0,3569 | 0,3523 | **0,3007** | **0,2441** |
 | VSTAN | 0,1070 | 0,7194 | 0,4024 | 0,3688 | 0,2955 | 0,2094 |
-| GRU4Rec gốc | **0,1172** | 0,7504 | 0,4265 | 0,3905 | 0,2977 | 0,2181 |
-| GRU4Rec đa hành vi | 0,1161 | 0,7540 | **0,4273** | **0,3912** | 0,3002 | 0,2177 |
+| GRU4Rec gốc | **0,1172** | 0,7504 | 0,4265 | 0,3905 | 0,2977 | **0,2181** |
+| GRU4Rec đa hành vi | 0,1161 | **0,7540** | **0,4273** | **0,3912** | **0,3002** | 0,2177 |
 
-- **Phiên ngắn (prefix 1–4, ~74% truy vấn):** GRU4Rec hơn rõ mọi mô hình khác. Đây là nơi nó tạo ra khoảng cách tổng thể.
-- **Phiên dài (5–9, 10+):** Repeat-last lại đứng đầu, vì khách thường quay lại item vừa xem.
-- **Target lặp:** Repeat-last gần như tối ưu (0,8291). GRU4Rec đứng sau Repeat-last nhưng hơn VSTAN.
-- **Target mới:** mọi mô hình đều thấp. Trên Validation 30', các mô hình phi tuần tự còn nhỉnh hơn GRU4Rec ở nhóm này: ItemKNN 0,1340, SKNN 0,1210, GRU4Rec gốc 0,1193, VSTAN 0,1069.
+- **Phiên ngắn (prefix 1–4, ~74% truy vấn):** GRU4Rec vượt VSTAN rõ rệt (bản đa hành vi: +0,025 ở prefix 1 và +0,022 ở prefix 2–4). Đây là nơi GRU4Rec tạo ra khoảng cách tổng thể.
+- **Phiên dài (5–9, 10+):** Điểm của mọi mô hình đều giảm dần theo độ dài phiên; GRU4Rec vẫn nhỉnh hơn VSTAN ở cả 4 nhóm độ dài.
+- **Target lặp vs Target mới:** GRU4Rec vượt VSTAN ở cả hai nhóm (bản đa hành vi: +0,035 ở target lặp và +0,009 ở target mới; bản gốc: +0,031 và +0,010). Tuy nhiên điểm ở target mới vẫn còn thấp (~0,11–0,12; trên Validation 30' SKNN đạt 0,1210, GRU4Rec gốc 0,1193, VSTAN 0,1069).
 - **Phiên 60'** giữ nguyên mẫu hình này: GRU4Rec đa hành vi đạt 0,1148 ở target mới, 0,7522 ở target lặp, 0,4353 ở prefix 1 và 0,4002 ở prefix 2–4.
 
 ### 2.4. Khía cạnh 2: Kiểm định tín hiệu đầu vào (Đa hành vi & Ngưỡng 30'/60')
@@ -123,14 +117,6 @@ Trên Validation, CI 95% của hiệu này đều chứa 0: 30' Δ = −0,00004 
 | GRU4Rec gốc | +0,0009 | [−0,0000; 0,0018] | +0,0009 | [0,0000; 0,0019] |
 | GRU4Rec đa hành vi | +0,0011 | [0,0002; 0,0021] | +0,0009 | [0,0001; 0,0018] |
 
-**C. Hơn mốc Repeat-last bao nhiêu? (mô hình − Repeat-last)**
-
-| Mô hình | Phiên 30' | CI 95% | Phiên 60' | CI 95% |
-| --- | ---: | :---: | ---: | :---: |
-| GRU4Rec đa hành vi | **+0,0384** | [0,0369; 0,0399] | **+0,0365** | [0,0350; 0,0380] |
-| GRU4Rec gốc | +0,0376 | [0,0360; 0,0390] | +0,0356 | [0,0341; 0,0371] |
-| VSTAN | +0,0190 | [0,0174; 0,0206] | +0,0172 | [0,0156; 0,0188] |
-
 ### 2.5. Chọn cấu hình GRU4Rec (notebook 07, Validation 30')
 
 | Thử nghiệm | HR@20 | MRR@20 | **NDCG@20** | So với bản chọn |
@@ -140,13 +126,12 @@ Trên Validation, CI 95% của hiệu này đều chứa 0: 30' Δ = −0,00004 
 | BPR-max, h = 100 (4 epoch) | 0,5280 | 0,3398 | 0,3827 | −0,0123 |
 | Cross-entropy có hiệu chỉnh log-Q, h = 224 | 0,4832 | 0,3211 | 0,3579 | −0,0371 |
 
-### 2.6. Trọng số hành vi trong kNN (Validation 30', NDCG@20)
+### 2.6. Trọng số hành vi trong Session-KNN (Validation 30', NDCG@20)
 
-Trọng số đều (1, 1, 1) luôn tốt hơn hoặc ngang trọng số theo hành vi (1, 2, 1) cho thấy tín hiệu đa hành vi không cải thiện nhóm kNN (RQ1):
+Trọng số đều (1, 1, 1) luôn tốt hơn hoặc ngang trọng số theo hành vi (1, 2, 1) cho thấy tín hiệu đa hành vi không cải thiện nhóm Session-KNN (RQ1):
 
 | Mô hình | Trọng số đều | Trọng số (1, 2, 1) |
 | --- | ---: | ---: |
-| ItemKNN | **0,0964** | 0,0907 |
 | SKNN | **0,3671** | 0,3659 |
 | STAN | **0,3745** | 0,3744 |
 | VSTAN | **0,3747** | 0,3745 |
@@ -204,7 +189,7 @@ So thứ hạng **bên trong** từng nghiên cứu thì công bằng hơn so s�
 
 ### 3.5. Phương pháp chưa có số liệu đối chiếu
 
-Popularity (Test 30' refit 0,0041), Repeat-last (0,3337; thiết kế theo D1 từ ý tưởng *recently viewed* của Jannach et al. 2017), ItemKNN đa hành vi (Val 30' 0,0964) và GRU4Rec đa hành vi (Test 30' refit 0,3721; mở rộng riêng của dự án) không có số liệu tương đương trong 2 nguồn trên, nên không đặt vào bảng đối chiếu.
+Popularity (Test 30' refit 0,0041) và GRU4Rec đa hành vi (Test 30' refit 0,3721; mở rộng riêng của dự án) không có số liệu tương đương trong 2 nguồn trên, nên không đặt vào bảng đối chiếu.
 
 ---
 
@@ -212,11 +197,11 @@ Popularity (Test 30' refit 0,0041), Repeat-last (0,3337; thiết kế theo D1 t�
 
 | Câu hỏi | Kết luận |
 | --- | --- |
-| **RQ1 — Đa hành vi & ngưỡng phiên có giúp không?** | **Cải thiện nhỏ.** Với kNN, trọng số hành vi không giúp (trọng số đều tốt hơn). Với GRU4Rec trên Test, bản đa hành vi hơn bản gốc +0,0008 đến +0,0011 NDCG@20 (p = 0,001–0,023, chủ yếu ở target lặp), còn trên Validation không khác biệt do 96,68% sự kiện là `view`. Nới ngưỡng phiên lên 60' tăng nhẹ ~+0,001 và không đổi thứ hạng mô hình. |
-| **RQ2 — Cấu trúc & thứ tự trong phiên có quan trọng không?** | **Có, rõ rệt.** GRU4Rec hơn VSTAN +0,019 và hơn Repeat-last +0,038 trên Test, hơn xa ItemKNN (0,0964 trên Validation) và Popularity (0,0041). Lợi thế lớn nhất nằm ở **phiên ngắn** (prefix 1 và 2–4, ~74% truy vấn) và khả năng gợi ý **target mới**. |
+| **RQ1 — Đa hành vi & ngưỡng phiên có giúp không?** | **Cải thiện nhỏ.** Với Session-KNN, trọng số hành vi không giúp (trọng số đều tốt hơn). Với GRU4Rec trên Test, bản đa hành vi hơn bản gốc +0,0008 đến +0,0011 NDCG@20 (p = 0,001–0,023, chủ yếu ở target lặp), còn trên Validation không khác biệt do 96,68% sự kiện là `view`. Nới ngưỡng phiên lên 60' tăng nhẹ ~+0,001 và không đổi thứ hạng mô hình. |
+| **RQ2 — Cấu trúc & thứ tự trong phiên có quan trọng không?** | **Có, rõ rệt.** GRU4Rec hơn VSTAN +0,019 trên Test và hơn xa Popularity (0,0041). Lợi thế lớn nhất nằm ở **phiên ngắn** (prefix 1 và 2–4, ~74% truy vấn) và dẫn đầu ở cả **target mới** lẫn **target lặp**. |
 
 **Hạn chế và hướng phát triển**
 
-- **Target mới còn yếu:** trên Validation 30', GRU4Rec (0,1193 ở target mới) còn thấp hơn ItemKNN (0,1340) và SKNN (0,1210). Có thể thử cơ chế trộn *repeat–explore* hoặc tăng trọng số khám phá khi huấn luyện.
+- **Target mới còn yếu:** trên Validation 30', GRU4Rec (0,1193 ở target mới) còn thấp so với target lặp (0,7742) và hơi thấp hơn SKNN (0,1210). Có thể thử cơ chế trộn *repeat–explore* hoặc tăng trọng số khám phá khi huấn luyện.
 - **Sản phẩm mới ngoài vocabulary:** mô hình chưa khai thác `categoryid` để gợi ý item chưa xuất hiện trong tập huấn luyện.
 - **Đánh giá ngoại tuyến:** chưa có log hiển thị (exposure) và chưa đo tác động thực tế qua A/B test.

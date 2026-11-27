@@ -73,7 +73,7 @@ Log chứa **1.407.580 visitor** và **235.061 item** phân biệt trong `events
 1. **Độ thưa cực lớn:** Mật độ ma trận cặp `(visitor, item)` xấp xỉ **0,00065%** (sparsity ≈ **99,99935%**). **71,16%** visitor chỉ có đúng 1 sự kiện và **79,53%** visitor chỉ tương tác đúng 1 sản phẩm → không thể dựa vào hồ sơ người dùng dài hạn; phải tập trung vào **ngữ cảnh phiên (session-based)** kèm cơ chế dự phòng (fallback).
 2. **Phản hồi ngầm (Implicit Feedback):** Không có đánh giá sao và không có log hiển thị (*exposure*), nên không thể coi sản phẩm chưa được tương tác là nhãn âm thật.
 3. **Ẩn danh nội dung:** Không có tên, ảnh hay mô tả sản phẩm; thông tin phụ chỉ có `categoryid` và `available` thay đổi theo thời gian.
-4. **Tương tác lặp cao trong phiên (`reports/04_samples/`):** **41,01%** lượt item trong target `train` đã xuất hiện trước đó trong chính tiền tố phiên (và `94.157` phiên train đủ mẫu chỉ chứa đúng 1 item phân biệt, theo khảo sát ban đầu). Điều này đòi hỏi tách đánh giá **Target mới vs Target lặp** và thêm mốc **Repeat-last** (Quyết định **D1**).
+4. **Tương tác lặp cao trong phiên (`reports/04_samples/`):** **41,01%** lượt item trong target `train` đã xuất hiện trước đó trong chính tiền tố phiên (và `94.157` phiên train đủ mẫu chỉ chứa đúng 1 item phân biệt, theo khảo sát ban đầu). Điều này đòi hỏi tách báo cáo đánh giá riêng **Target mới vs Target lặp** (Quyết định **D1**).
 5. **Trôi dạt danh mục theo thời gian (Cold-start Item):** Tỷ lệ lượt target ngoài vocabulary `train` đạt **5,31%** ở `validation` và **9,33%** ở `test` → cần cơ chế `train_validation_refit` (**D2**) và giữ nguyên OOV trong mẫu số đánh giá để không làm đẹp số liệu giả tạo.
 
 ---
@@ -158,12 +158,12 @@ Mọi mô hình (kể cả nguồn fallback Popularity) chỉ được phép tr�
 
 | Mã | Vấn đề dữ liệu phát hiện | Quyết định đã chốt (`configs/protocol.json` v1.3.2) |
 | :-: | --- | --- |
-| **D1** | `41,01%` lượt target train là lặp lại item đã có trong prefix | Giữ nguyên dữ liệu; gắn cờ `target_is_repeat`; tách báo cáo **Tất cả / Target mới / Target lặp**; thêm mốc **Repeat-last** |
+| **D1** | `41,01%` lượt target train là lặp lại item đã có trong prefix | Giữ nguyên dữ liệu; gắn cờ `target_is_repeat`; tách báo cáo **Tất cả / Target mới / Target lặp** |
 | **D2** | OOV test `9,33%` lớn hơn validation `5,31%` do trôi dạt theo thời gian | Chọn cấu hình trên Validation, rồi refit lại trên `train + validation` (giữ nguyên số epoch) để đánh giá trên Test |
 | **D3** | `125` phiên train có `> 100` nhóm (dài nhất `417` nhóm / `12,1` giờ) | Không loại phiên; cắt cửa sổ tối đa **51 nhóm** (chồng 1 nhóm, tối đa 50 bước dự đoán) khi huấn luyện GRU; đánh giá luôn dùng **đủ prefix**; báo cáo theo 4 bin độ dài `1, 2–4, 5–9, 10+` |
 | **D4** | Cần chọn hàm mất mát phù hợp cho GRU4Rec trên CPU (`~213k` item) | So sánh **BPR-max** và **Sampled Softmax Cross-Entropy** (cùng `n_neg = 2048`) trên Validation; nhãn chia đều $1/|G|$ cho target nhiều item |
 | **D5** | Chọn phạm vi xây dựng vocabulary | Lấy toàn bộ item xuất hiện trong `train` (kể cả phiên 1 nhóm) để tối đa độ phủ |
-| **D6** | Tái sử dụng code và tránh sai lệch metric giữa các notebook | Chuẩn hóa toàn bộ logic dùng chung vào `src/rr/` (10 module) kèm bộ kiểm thử tự động `pytest` (**55/55 tests PASS**) |
+| **D6** | Tái sử dụng code và tránh sai lệch metric giữa các notebook | Chuẩn hóa toàn bộ logic dùng chung vào `src/rr/` (10 module) kèm bộ kiểm thử tự động `pytest` (**53/53 tests PASS**) |
 
 ---
 

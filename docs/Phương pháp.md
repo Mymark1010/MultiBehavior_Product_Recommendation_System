@@ -25,19 +25,17 @@ với $i_e \in \mathcal{I}$ là mã sản phẩm và $b_e \in \mathcal{B} = \{\t
 | Nhóm | Phương pháp | Vai trò | Phạm vi chạy |
 | --- | --- | --- | --- |
 | **Mốc cơ sở** | **Popularity** | Mốc độ phổ biến & nguồn dự phòng (fallback) | Validation (`NB05`, `NB09`) & Test (`NB10`) |
-| **Mốc cơ sở** | **Repeat-last** | Mốc D1 đo trần điểm của hành vi lặp lại | Validation (`NB05`, `NB09`) & Test (`NB10`) |
-| **Láng giềng gần** | **ItemKNN** | Đối chứng tương đồng item phi tuần tự | Validation (`NB06`) |
-| **Láng giềng gần** | **SKNN → STAN → VSTAN** | Chuỗi phát triển láng giềng phiên; **VSTAN** là mốc kNN chính | `SKNN/STAN` ở `NB06`; **VSTAN** ở `NB06`, `NB09`, `NB10` |
+| **Láng giềng phiên** | **SKNN → STAN → VSTAN** | Chuỗi phát triển láng giềng theo phiên; **VSTAN** là mốc kNN chính | `SKNN/STAN` ở `NB06`; **VSTAN** ở `NB06`, `NB09`, `NB10` |
 | **Mô hình chính** | **GRU4Rec gốc (`gru4rec_item`)** | Mạng hồi quy theo nhóm timestamp, chỉ dùng item | Validation (`NB09`) & Test (`NB10`) |
 | **Mô hình chính** | **GRU4Rec đa hành vi (`gru4rec`)** | Cùng kiến trúc bản gốc, cộng embedding hành vi | Validation (`NB07`, `NB09`) & Test (`NB10`) |
 
-> **Minh bạch thay đổi phạm vi:** So với giai đoạn khảo sát đầu (`v1.2.0`), **SR-GNN** được gỡ ở `v1.3.1` (26/11/2026) và **S-POP, SR, V-SKNN** được gỡ ở `v1.3.2` (26/11/2026) cùng ngưỡng $K = 10$ để tập trung sâu vào trục so sánh trọng tâm **GRU4Rec gốc vs GRU4Rec đa hành vi** trên hai ngưỡng phiên **30 phút và 60 phút** tại $K = 20$.
+> **Minh bạch thay đổi phạm vi:** So với giai đoạn khảo sát đầu (`v1.2.0`), **SR-GNN** được gỡ ở `v1.3.1`, **S-POP, SR, V-SKNN** cùng ngưỡng $K = 10$ được gỡ ở `v1.3.2`, và **Repeat-last, ItemKNN** được gỡ để tập trung gọn vào chuỗi láng giềng phiên (**SKNN → STAN → VSTAN**) và trục so sánh trọng tâm **GRU4Rec gốc vs GRU4Rec đa hành vi** trên hai ngưỡng phiên **30 phút và 60 phút** tại $K = 20$.
 
 ---
 
 ## 2. Cơ chế hậu xử lý chung: Lọc ứng viên và Fallback (`src/rr/candidates.py`)
 
-Mọi mô hình (cả phi neural lẫn neural) đều xuất ma trận ứng viên đã xếp hạng có chiều rộng `width = 200` (riêng `Repeat-last` là `50`), sau đó đi qua cùng một hàm hậu xử lý `finalize_topk()` để đảm bảo so sánh công bằng tuyệt đối:
+Mọi mô hình (cả phi neural lẫn neural) đều xuất ma trận ứng viên đã xếp hạng có chiều rộng `width = 200`, sau đó đi qua cùng một hàm hậu xử lý `finalize_topk()` để đảm bảo so sánh công bằng tuyệt đối:
 
 ```mermaid
 flowchart LR
@@ -53,37 +51,17 @@ flowchart LR
 
 ---
 
-## 3. Các mốc cơ sở (`src/rr/models.py`, Notebook `05`)
-
-### 3.1. Popularity
+## 3. Mốc cơ sở: Popularity (`src/rr/models.py`, Notebook `05`)
 
 Xếp hạng toàn cục các item trên tập huấn luyện theo tổng số tương tác có trọng số hành vi:
 $$\text{score}_{\text{Pop}}(i) = \sum_{e \in \mathcal{E}_{\text{fit}},\; i_e = i} w_{b_e}$$
 với lưới tìm kiếm trên Validation: $w_{\text{view}} = 1$, $w_{\text{addtocart}} \in \{1, 2, 5, 10\}$, $w_{\text{transaction}} \in \{1, 2, 5, 10\}$. Cấu hình được chọn trên Validation là **`pop_v1_c2_b1`** ($w = (1, 2, 1)$), phá hòa theo `itemid` tăng dần.
 
-### 3.2. Repeat-last (Mốc Quyết định D1)
-
-Gợi ý lại các sản phẩm đã xuất hiện trong tiền tố $P_q$ theo **độ gần đây tuyệt đối**, bỏ qua tần suất cũ. Gọi $d_{\min}(q, i) \ge 0$ là khoảng cách tính theo số nhóm từ lần xuất hiện gần nhất của item $i$ tới nhóm cuối $g_t$ ($d = 0$ nếu $i \in g_t$), và $\text{str}(i) \in \{0, 1, 2\}$ là độ mạnh hành vi lớn nhất của $i$ tại nhóm gần nhất đó (`view = 0 < addtocart = 1 < transaction = 2`). Điểm xếp hạng trong `src/rr/models.py` là:
-$$\text{score}_{\text{Rep}}(q, i) = -10 \cdot d_{\min}(q, i) + \text{str}(i)$$
-Khoảng cách luôn chi phối hoàn toàn; chỉ khi hai item nằm trong **cùng một nhóm timestamp** thì hành vi mạnh hơn đứng trước, sau đó phá hòa theo `itemid` tăng dần. Nếu tiền tố có ít hơn 20 item phân biệt, các vị trí còn lại được bù bằng Popularity.
-
 ---
 
-## 4. Họ phương pháp láng giềng gần (`src/rr/models.py`, Notebook `06` & `09`)
+## 4. Họ phương pháp láng giềng theo phiên: SKNN → STAN → VSTAN (`src/rr/models.py`, Notebook `06` & `09`)
 
-Để kiểm soát thời gian suy luận trên phiên rất dài (D3), mọi bộ chấm kNN chỉ sử dụng tối đa **`max_prefix_groups = 50`** nhóm gần nhất của tiền tố (các nhóm xa hơn có trọng số suy giảm xấp xỉ 0).
-
-### 4.1. ItemKNN đa hành vi
-
-- **Huấn luyện (`fit`):** Dựng ma trận thưa phiên $\times$ item $\mathbf{X}$ từ các phiên huấn luyện có $\ge 2$ item phân biệt. Giá trị ô $(s, i)$ là **trọng số lớn nhất** (`max`, không cộng dồn khi xem lặp trong cùng phiên) của các hành vi mà phiên $s$ thực hiện trên item $i$. Tính độ tương đồng cosine giữa các cột item (đặt đường chéo bằng 0) và giữ Top-$M$ láng giềng gần nhất cho mỗi item:
-  $$\text{sim}(i, j) = \frac{\mathbf{X}_{:, i}^\top \mathbf{X}_{:, j}}{\|\mathbf{X}_{:, i}\|_2 \, \|\mathbf{X}_{:, j}\|_2}, \qquad i \neq j$$
-- **Chấm điểm (`recommend`):** Biểu diễn tiền tố $P_q$ thành vector trọng số suy giảm theo khoảng cách nhóm $w_q(i) = \gamma^{d(q, i)}$ (với tùy chọn nhân trọng số hành vi) rồi tính tổng điểm:
-  $$\text{score}_{\text{ItemKNN}}(q, j) = \sum_{i \in P_q} w_q(i) \cdot \text{sim}(i, j)$$
-- **Cấu hình chọn trên Validation:** `M = 200`, `decay = 0.6`, trọng số hành vi **đều** `(1, 1, 1)` (đều tốt hơn trọng số hành vi trên cả `all` lẫn `strong_behavior_targets`).
-
-### 4.2. Chuỗi láng giềng theo phiên: SKNN → STAN → VSTAN
-
-Cả ba biến thể chia sẻ chung kho lưu trữ phiên huấn luyện có $\ge 2$ item phân biệt; với mỗi item $i$, chỉ lập chỉ mục tối đa **`sample_size = 500`** phiên kết thúc gần nhất chứa $i$ để tìm tập phiên láng giềng ứng viên $\mathcal{S}(q)$, sau đó chọn Top-$k$ phiên giống nhất $N_k(q)$.
+Để kiểm soát thời gian suy luận trên phiên rất dài (D3), mọi bộ chấm kNN chỉ sử dụng tối đa **`max_prefix_groups = 50`** nhóm gần nhất của tiền tố (các nhóm xa hơn có trọng số suy giảm xấp xỉ 0). Cả ba biến thể chia sẻ chung kho lưu trữ phiên huấn luyện có $\ge 2$ item phân biệt; với mỗi item $i$, chỉ lập chỉ mục tối đa **`sample_size = 500`** phiên kết thúc gần nhất chứa $i$ để tìm tập phiên láng giềng ứng viên $\mathcal{S}(q)$, sau đó chọn Top-$k$ phiên giống nhất $N_k(q)$.
 
 1. **SKNN (Session-KNN nhị phân):**
    - Trọng số truy vấn đồng đều $w_q(i) = 1$ với $i \in P_q$. Độ tương đồng giữa truy vấn $q$ và phiên $s$:
@@ -175,7 +153,7 @@ Chỉ tệp cấu hình `config.json` được theo dõi trên Git; tệp trọn
 | `models/session60/gru4rec_item/` | GRU4Rec gốc (`chỉ item`) | 60 phút | `09` |
 
 - Toàn bộ 4 thư mục trên chỉ lưu mô hình huấn luyện trên tập **`train`**. Biến thể refit trên `train + validation` (D2) được huấn luyện trực tiếp trong notebook `10` và không ghi đè vào `models/`.
-- `Popularity`, `Repeat-last`, `ItemKNN` và `VSTAN` không lưu trọng số ra `models/` vì có thể tính lại trực tiếp từ tập huấn luyện trong vài giây mỗi lần chạy.
+- `Popularity` và `VSTAN` không lưu trọng số ra `models/` vì có thể tính lại trực tiếp từ tập huấn luyện trong vài giây mỗi lần chạy.
 - `SR-GNN` đã được gỡ khỏi phạm vi từ protocol `v1.3.1` nên không còn thư mục `models/srgnn/`.
 
 ---
