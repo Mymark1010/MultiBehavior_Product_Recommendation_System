@@ -21,8 +21,9 @@ Tại cuối g₂, đầu vào là tiền tố (g₁, g₂), đáp án cần d�
 | --- | --- |
 | **[`docs/Data.md`](docs/Data.md)** | Đặc điểm bộ dữ liệu RetailRocket (2,756M sự kiện, 20,28M thuộc tính), pipeline tiền xử lý 5 bước, chia tập theo thời gian 80/10/10 chống rò rỉ, đặc tả Input–Output và 6 quyết định giao thức (D1–D6). |
 | **[`docs/Phương pháp.md`](<docs/Phương pháp.md>)** | Công thức toán học và chi tiết cài đặt các mốc cơ sở (`Popularity`, `Repeat-last`), họ kNN (`ItemKNN`, `SKNN → STAN → VSTAN`), kiến trúc `GRU4Rec gốc` vs `GRU4Rec đa hành vi` (`BPR-max`), siêu tham số và tài liệu tham khảo. |
-| **[`docs/Đánh giá.md`](<docs/Đánh giá.md>)** | Bộ thang đo tại $K = 20$ (`HR`, `Recall`, `MRR`, `NDCG@20`), toàn bộ kết quả Validation & Test, kiểm định Paired Bootstrap 95%, Ablation độ vững dữ liệu và đối chiếu các công bố khoa học trên RetailRocket. |
-| **[Slide báo cáo (PPTX)](docs/BAO_CAO_TIEN_DO_PROJECT3_HUST_27_11.pptx)** | Bản trình bày tổng quan tiến độ và kết quả dự án. |
+| **[`docs/Đánh giá.md`](<docs/Đánh giá.md>)** | Bộ thang đo tại $K = 20$ (`HR`, `Recall`, `MRR`, `NDCG@20`), toàn bộ kết quả Validation & Test, kiểm định Paired Bootstrap 95% và đối chiếu các công bố khoa học trên RetailRocket. |
+| **[Sơ đồ pipeline tổng thể](docs/pipeline_tong_the.png)** | Sơ đồ 4 tầng từ xử lý dữ liệu, mô hình hóa, 2 khía cạnh đánh giá đến hệ thống chỉ số tại $K = 20$. |
+| **[Slide báo cáo (PPTX)](docs/BAO_CAO_TIEN_DO_PROJECT3_HUST_27_11_v3.pptx)** | Bản trình bày tổng quan tiến độ, kết quả Test và đối chiếu công bố khoa học. |
 
 ---
 
@@ -38,10 +39,9 @@ Tại cuối g₂, đầu vào là tiền tố (g₁, g₂), đáp án cần d�
 | GRU4Rec gốc *(chỉ sản phẩm)* | **0,5106** | 0,3299 | **0,3713** | **0,5111** | 0,3337 | **0,3742** |
 | **GRU4Rec đa hành vi** | 0,5104 | **0,3312** | **0,3721** | 0,5101 | **0,3352** | **0,3752** |
 
-**Ba kết luận rút gọn:**
-- **Thứ tự phiên quyết định chất lượng:** `GRU4Rec` dẫn đầu tuyệt đối trên cả Validation và Test, vượt `VSTAN` (`+0,019`) và vượt `Repeat-last` (`+0,038` `NDCG@20`).
-- **Tín hiệu đa hành vi có lợi ích nhỏ:** Trên biến thể `refit`, `GRU4Rec đa hành vi` vượt bản gốc có ý nghĩa thống kê khoảng `+0,0008` đến `+0,0011` `NDCG@20` (chủ yếu ở target lặp), nhưng chưa đồng nhất ở chế độ `train_only` do `96,68%` log là lượt xem.
-- **Cân bằng thực tiễn:** `GRU4Rec` đạt chất lượng cao nhất với `0%` fallback (fit ~8–10 phút trên CPU); `VSTAN` đạt ~95% điểm của GRU4Rec nhưng chỉ tốn ~4 giây fit.
+**Hai kết luận rút gọn (theo 2 khía cạnh đánh giá trọng tâm):**
+- **Cấu trúc & thứ tự trong phiên quyết định chất lượng:** `GRU4Rec` dẫn đầu tuyệt đối trên cả Validation và Test, vượt `VSTAN` (`+0,019`) và vượt `Repeat-last` (`+0,038` `NDCG@20`), bứt phá rõ nhất ở **phiên ngắn** (prefix `1` và `2–4`, ~75% truy vấn) và vượt `Repeat-last` hoàn toàn ở **target mới**.
+- **Tín hiệu đa hành vi & ngưỡng phiên cho cải thiện nhỏ:** `GRU4Rec đa hành vi` vượt bản gốc có ý nghĩa thống kê khoảng `+0,0008` đến `+0,0011` `NDCG@20` (chủ yếu ở target lặp, do `96,68%` log là lượt xem); mở rộng ngưỡng phiên `30' → 60'` tăng nhẹ ~`+0,001` và giữ nguyên thứ hạng mô hình.
 
 ---
 
@@ -52,12 +52,11 @@ Tại cuối g₂, đầu vào là tiền tố (g₁, g₂), đáp án cần d�
 ├── docs/                     ← Tài liệu chi tiết: Data.md, Phương pháp.md, Đánh giá.md, slide PPTX
 ├── configs/protocol.json     ← Giao thức thực nghiệm đã chốt (v1.3.2)
 ├── data/                     ← Dữ liệu raw CSV (không lên git) và processed Parquet (xem docs/Data.md)
-├── notebooks/                ← Pipeline thực nghiệm chạy theo thứ tự 01 → 12
+├── notebooks/                ← Pipeline thực nghiệm chạy theo thứ tự 01 → 11
 ├── src/rr/                   ← Mã nguồn dùng chung: xử lý, metric, lọc ứng viên, kNN, GRU4Rec, demo
 ├── tests/                    ← Bộ kiểm thử tự động (pytest) cho src/rr/
 ├── models/                   ← Cấu hình và trọng số mô hình đã lưu (xem docs/Phương pháp.md)
-├── reports/                  ← Kết quả JSON/MD và chuỗi mã băm SHA-256 từng bước (xem reports/README.md)
-├── scripts/                  ← Script khảo sát dữ liệu độc lập
+├── reports/                  ← Kết quả JSON/MD và chuỗi mã băm SHA-256 từng bước
 ├── requirements.txt          ← Thư viện Python 3.14 cần cài
 └── pyproject.toml            ← Cấu hình gói rr và pytest
 ```
@@ -70,7 +69,7 @@ Tại cuối g₂, đầu vào là tiền tố (g₁, g₂), đáp án cần d�
 | --- | --- | --- |
 | **1. Dữ liệu** | [01](notebooks/01_kiem_tra_va_lam_sach_events.ipynb), [02](notebooks/02_tao_phien_nhom_timestamp_va_chia_tap.ipynb), [Kiểm tra](notebooks/kiem_tra_ket_qua_xu_ly.ipynb), [03](notebooks/03_lich_su_thuoc_tinh_va_catalog.ipynb), [04](notebooks/04_vocabulary_va_bo_mau.ipynb) | Làm sạch events, cắt phiên 30', kiểm định độc lập `36/36 PASS`, trích xuất lịch sử thuộc tính as-of, tạo vocabulary và bộ mẫu `prefix → target`. |
 | **2. Validation** | [05](notebooks/05_danh_gia_va_popularity.ipynb), [06](notebooks/06_itemknn_va_sessionknn.ipynb), [07](notebooks/07_gru4rec.ipynb), [09](notebooks/09_gru4rec_hanh_vi_phien_30_60.ipynb) | Chọn siêu tham số trên Validation (không đọc Test) cho `Popularity`, `Repeat-last`, họ kNN (`ItemKNN`, `SKNN → STAN → VSTAN`), `GRU4Rec gốc` và `GRU4Rec đa hành vi` trên cả hai ngưỡng 30' và 60'. |
-| **3. Test & Phân tích** | [10](notebooks/10_thuc_nghiem_cuoi_test.ipynb), [11](notebooks/11_demo.ipynb), [12](notebooks/12_ablation_du_lieu.ipynb) | Đóng băng cấu hình, diễn tập validation rồi chấm **Test đúng một lần** (`10`), chạy demo tương tác Top-20 (`11`) và phân tích độ vững dữ liệu (`12`). |
+| **3. Test & Demo** | [10](notebooks/10_thuc_nghiem_cuoi_test.ipynb), [11](notebooks/11_demo.ipynb) | Đóng băng cấu hình, diễn tập validation rồi chấm **Test đúng một lần** (`10`) và chạy demo tương tác Top-20 (`11`). |
 
 *(Ghi chú: không có notebook `08` vì SR-GNN đã được gỡ khỏi phạm vi từ `v1.3.1`.)*
 
@@ -97,7 +96,7 @@ pip install kaggle
 kaggle datasets download -d retailrocket/ecommerce-dataset -p data/raw --unzip
 ```
 
-**Chạy pipeline:** Mở các notebook theo thứ tự `01 → 02 → kiểm tra → 03 → … → 12` bằng kernel `.venv` (hoặc chạy dòng lệnh):
+**Chạy pipeline:** Mở các notebook theo thứ tự `01 → 02 → kiểm tra → 03 → … → 11` bằng kernel `.venv` (hoặc chạy dòng lệnh):
 
 ```bash
 jupyter nbconvert --to notebook --execute --inplace notebooks/01_kiem_tra_va_lam_sach_events.ipynb

@@ -15,11 +15,10 @@ Cho một phiên truy cập đang diễn ra đến mốc thời gian $t$, hệ t
 $$P_q = (g_1, g_2, \dots, g_t), \qquad g_k = \big\{(i_e, b_e) \mid \text{timestamp}(e) = \tau_k\big\}$$
 với $i_e \in \mathcal{I}$ là mã sản phẩm và $b_e \in \mathcal{B} = \{\text{view}, \text{addtocart}, \text{transaction}\}$ là loại hành vi. Tại thời điểm $t = \tau_t$, bài toán yêu cầu sinh danh sách có thứ tự gồm $K = 20$ sản phẩm phân biệt $L_q = (\hat{i}_1, \dots, \hat{i}_{20}) \subseteq \mathcal{C}(t)$ để dự đoán tập sản phẩm phân biệt ở nhóm kế tiếp $G_q = \{i_e \mid e \in g_{t+1}\}$ (mọi loại hành vi).
 
-### 1.2. Ba câu hỏi nghiên cứu
+### 1.2. Hai câu hỏi nghiên cứu trọng tâm
 
-- **RQ1 (Đa hành vi):** Phân biệt ba hành vi `view`, `addtocart`, `transaction` có cải thiện chất lượng xếp hạng so với chỉ dùng chuỗi sản phẩm hay coi mọi tương tác như nhau không?
-- **RQ2 (Thứ tự tương tác):** Thứ tự diễn biến trong phiên có cung cấp thêm thông tin ngoài độ phổ biến và độ tương đồng sản phẩm không?
-- **RQ3 (Đánh đổi thực tiễn):** Phương pháp nào cân bằng tốt nhất giữa chất lượng xếp hạng, chi phí huấn luyện/suy luận trên CPU và khả năng phục vụ phiên ngắn / sản phẩm mới?
+- **RQ1 (Thiết kế tín hiệu đầu vào — Đa hành vi & Ngưỡng phiên):** Phân biệt ba hành vi `view`, `addtocart`, `transaction` và nới ngưỡng cắt phiên từ `30 phút` lên `60 phút` có cải thiện chất lượng xếp hạng so với chỉ dùng chuỗi sản phẩm hay coi mọi tương tác như nhau không?
+- **RQ2 (Cấu trúc & thứ tự bên trong phiên):** Thứ tự diễn biến trong phiên có cung cấp thêm thông tin ngoài độ phổ biến và hành vi lặp lại không — đặc biệt khi tách **target mới vs target lặp** và theo **độ dài tiền tố phiên**?
 
 ### 1.3. Hệ thống mô hình trong phạm vi `v1.3.2`
 
@@ -109,7 +108,7 @@ Cả ba biến thể chia sẻ chung kho lưu trữ phiên huấn luyện có $\
 
 ## 5. Mô hình chính: GRU4Rec gốc và GRU4Rec đa hành vi (`src/rr/gru.py`, Notebook `07` & `09`)
 
-Cài đặt tự xây dựng bằng PyTorch trên CPU theo đúng tập tính năng chuẩn của bản chính thức **Hidasi & Czapp (RecSys 2023)**, mở rộng để xử lý **nhóm timestamp** và tách trực tiếp nhánh hành vi.
+Cài đặt tự xây dựng bằng PyTorch trên CPU theo đúng tập tính năng chuẩn của bản GRU4Rec chính thức (`hidasib/GRU4Rec_PyTorch_Official`; hàm mất mát BPR-max của Hidasi & Karatzoglou, CIKM 2018), mở rộng để xử lý **nhóm timestamp** và tách trực tiếp nhánh hành vi.
 
 ### 5.1. Kiến trúc mạng
 
@@ -181,15 +180,10 @@ Chỉ tệp cấu hình `config.json` được theo dõi trên Git; tệp trọn
 
 ---
 
-## 6. Quy trình đóng băng, Refit (D2) và Thiết kế Ablation
+## 6. Quy trình đóng băng và Refit (D2)
 
 1. **Đóng băng cấu hình trước Test (NB10):** Ghi SHA-256 của `configs/protocol.json`, toàn bộ report validation (`05–09`) và trọng số 4 mô hình GRU đã chọn vào `reports/10_final/frozen.json`. Bắt buộc chạy diễn tập trên validation (`RR_FINAL_SPLIT=validation` → `reports/10_final_rehearsal/`) khớp tuyệt đối trước khi mở khóa lần chạy Test duy nhất.
-2. **Hai biến thể huấn luyện trên Test (D2):**
-   - `train_only`: dùng mô hình đã fit trên `train` (vocab `212.915`).
-   - `train_validation_refit` (**biến thể chính**): giữ nguyên siêu tham số và số epoch đã chọn trên Validation (`2 epoch` cho GRU4Rec), tính lại vocabulary (`224.167`), `known_at_trainval_ms`, độ phổ biến, kho phiên VSTAN và huấn luyện lại GRU từ đầu trên `train + validation`.
-3. **Các phép Ablation có kiểm soát:**
-   - **Vai trò thứ tự phiên (NB07 — RQ2):** đánh giá cùng mô hình GRU đã huấn luyện trên (a) tiền tố bị xáo trộn ngẫu nhiên thứ tự nhóm (`shuffled_groups`) và (b) chỉ giữ nhóm cuối cùng (`last_group_only`).
-   - **Độ vững dữ liệu (NB12):** (a) gắn cờ visitor bất thường theo phân vị `99,99%` trên train (`> 145,3` sự kiện/ngày hoặc `> 11` giao dịch/ngày UTC) và kiểm tra độ ổn định thứ hạng khi bỏ nhóm này hoặc bỏ top-10 visitor; (b) ma trận 2×2 `gốc/gộp` khi gộp các nhóm liên tiếp trùng hệt tập `(item, hành vi)`.
+2. **Huấn luyện lại trước khi chấm Test (`train_validation_refit`, D2):** Giữ nguyên toàn bộ siêu tham số và số epoch đã chọn trên Validation (`2 epoch` cho GRU4Rec), cập nhật vocabulary (`224.167`), `known_at_trainval_ms`, độ phổ biến, kho phiên VSTAN và huấn luyện lại GRU từ đầu trên `train + validation` trước khi chấm tập Test một lần duy nhất.
 
 ---
 
@@ -202,6 +196,4 @@ Chỉ tệp cấu hình `config.json` được theo dõi trên Git; tệp trọn
 5. **Garg, D., Gupta, P., Malhotra, P., Vig, L., & Shroff, G. (2019).** *Sequence and Time Aware Neighborhood for Session-based Recommendations: STAN.* ACM SIGIR 2019.
 6. **Ren, P., Chen, Z., Li, J., Ren, Z., Ma, J., & de Rijke, M. (2019).** *RepeatNet: A Repeat Aware Neural Recommendation Machine for Session-based Recommendation.* AAAI 2019.
 7. **Ludewig, M., Mauro, N., Latifi, S., & Jannach, D. (2021).** *Empirical analysis of session-based recommendation algorithms.* UMUAI, 31, 149–181.
-8. **Latifi, S., Mauro, N., & Jannach, D. (2021).** *Session-aware recommendation: A surprising quest for the state-of-the-art.* Information Sciences, 573, 291–315.
-9. **Hidasi, B., & Czapp, Á. T. (2023).** *The effect of third party implementations on reproducibility* & *Widespread flaws in offline evaluation of recommender systems.* ACM RecSys 2023.
-10. **Shehzad, F., & Jannach, D. (2024).** *Performance comparison of session-based recommendation algorithms based on GNNs.* ECIR 2024.
+8. **Shehzad, F., & Jannach, D. (2024).** *Performance comparison of session-based recommendation algorithms based on GNNs.* ECIR 2024.

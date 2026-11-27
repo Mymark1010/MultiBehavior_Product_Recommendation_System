@@ -136,8 +136,8 @@ Một phiên có $n \ge 2$ nhóm timestamp $(g_1, g_2, \dots, g_n)$ sinh ra $n -
 
 Theo Quyết định **D5**, vocabulary gồm **toàn bộ item xuất hiện trong tập huấn luyện** (kể cả phiên 1 nhóm), mã hóa `PAD = 0`, `UNK = 1`, item từ `2` sắp tăng dần theo `itemid` để tái lập tuyệt đối:
 
-- **Chế độ `train_only`:** **212.915 item** (`212.917` chỉ số gồm `PAD/UNK`). Trong đó có `120.576` item nằm trong phiên $\ge 2$ nhóm, `92.339` item chỉ ở phiên 1 nhóm và `104.450` item từng xuất hiện làm target dương (**71,4%** trong số này chỉ có từ `1–5` lượt target).
-- **Chế độ `train_validation_refit` (D2):** **224.167 item** (dùng riêng cho lần refit trước khi chấm Test).
+- **Vocabulary tập `train` (dùng cho Validation):** **212.915 item** (`212.917` chỉ số gồm `PAD/UNK`). Trong đó có `120.576` item nằm trong phiên $\ge 2$ nhóm, `92.339` item chỉ ở phiên 1 nhóm và `104.450` item từng xuất hiện làm target dương (**71,4%** trong số này chỉ có từ `1–5` lượt target).
+- **Vocabulary tập `train + validation` (refit D2 cho Test):** **224.167 item**.
 - **Ảnh hưởng độ phủ OOV:** Dùng toàn bộ `train` thay vì chỉ phiên $\ge 2$ nhóm giúp giảm OOV ở Validation từ `9,39%` xuống **5,31%** (`4.923 / 92.794` lượt target; `4.915` query toàn bộ OOV) và ở Test từ `13,71%` xuống **9,33%** (`8.639 / 92.634` lượt target; `8.613` query toàn bộ OOV → trần Recall tối đa trên Test là **0,907**).
 
 ### 4.3. Luật lọc ứng viên hợp lệ tại thời điểm $t$
@@ -149,8 +149,8 @@ Mọi mô hình (kể cả nguồn fallback Popularity) chỉ được phép tr�
    $$\text{known\_at\_train\_ms}(i) = \min\big(\text{first\_train\_event\_ms}(i),\; \text{first\_property\_ms}(i)\big)$$
    *(Chỉ tính từ sự kiện của tập fit và lịch sử thuộc tính, đảm bảo không rò rỉ sự xuất hiện từ tương lai.)*
 
-> **Vì sao bỏ luật lọc `available != 0` khỏi bộ lọc chính (từ protocol `v1.2.0`)?**
-> Khảo sát NB04 cho thấy **17,62%** lượt target Validation (và **15,43%** Train) được người dùng tương tác ngay khi bản ghi `available` gần nhất $\le t$ có giá trị bằng `0` (vì `item_properties` là snapshot định kỳ theo tuần, không phải trạng thái kho thời gian thực). Nếu lọc cứng `available != 0`, tỷ lệ target không đủ điều kiện tăng vọt từ `5,31%` lên **22,92%** ở Validation và từ `9,33%` lên **27,42%** ở Test. Do đó luật `available != 0` chỉ giữ làm **báo cáo phụ**.
+> **Vì sao bỏ luật lọc `available != 0` khỏi bộ lọc ứng viên (từ protocol `v1.2.0`)?**
+> Khảo sát NB04 cho thấy **17,62%** lượt target Validation (và **15,43%** Train) được người dùng tương tác ngay khi bản ghi `available` gần nhất $\le t$ có giá trị bằng `0` (vì `item_properties` là snapshot định kỳ theo tuần, không phải trạng thái kho thời gian thực). Nếu lọc cứng `available != 0`, tỷ lệ target không đủ điều kiện tăng vọt từ `5,31%` lên **22,92%** ở Validation và từ `9,33%` lên **27,42%** ở Test. Do đó luật `available != 0` đã được loại bỏ khỏi bộ lọc ứng viên.
 
 ---
 
@@ -159,11 +159,11 @@ Mọi mô hình (kể cả nguồn fallback Popularity) chỉ được phép tr�
 | Mã | Vấn đề dữ liệu phát hiện | Quyết định đã chốt (`configs/protocol.json` v1.3.2) |
 | :-: | --- | --- |
 | **D1** | `41,01%` lượt target train là lặp lại item đã có trong prefix | Giữ nguyên dữ liệu; gắn cờ `target_is_repeat`; tách báo cáo **Tất cả / Target mới / Target lặp**; thêm mốc **Repeat-last** |
-| **D2** | OOV test `9,33%` lớn hơn validation `5,31%` do trôi dạt theo thời gian | Chọn cấu hình trên Validation, rồi refit lại trên `train + validation` (giữ nguyên số epoch) làm biến thể chính trên Test; báo cáo song song `train_only` |
+| **D2** | OOV test `9,33%` lớn hơn validation `5,31%` do trôi dạt theo thời gian | Chọn cấu hình trên Validation, rồi refit lại trên `train + validation` (giữ nguyên số epoch) để đánh giá trên Test |
 | **D3** | `125` phiên train có `> 100` nhóm (dài nhất `417` nhóm / `12,1` giờ) | Không loại phiên; cắt cửa sổ tối đa **51 nhóm** (chồng 1 nhóm, tối đa 50 bước dự đoán) khi huấn luyện GRU; đánh giá luôn dùng **đủ prefix**; báo cáo theo 4 bin độ dài `1, 2–4, 5–9, 10+` |
 | **D4** | Cần chọn hàm mất mát phù hợp cho GRU4Rec trên CPU (`~213k` item) | So sánh **BPR-max** và **Sampled Softmax Cross-Entropy** (cùng `n_neg = 2048`) trên Validation; nhãn chia đều $1/|G|$ cho target nhiều item |
 | **D5** | Chọn phạm vi xây dựng vocabulary | Lấy toàn bộ item xuất hiện trong `train` (kể cả phiên 1 nhóm) để tối đa độ phủ |
-| **D6** | Tái sử dụng code và tránh sai lệch metric giữa các notebook | Chuẩn hóa toàn bộ logic dùng chung vào `src/rr/` (10 module) kèm bộ kiểm thử tự động `pytest` (**58/58 tests PASS**) |
+| **D6** | Tái sử dụng code và tránh sai lệch metric giữa các notebook | Chuẩn hóa toàn bộ logic dùng chung vào `src/rr/` (10 module) kèm bộ kiểm thử tự động `pytest` (**55/55 tests PASS**) |
 
 ---
 
