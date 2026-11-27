@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'reports' / 'gru_readiness'
+OUT = ROOT / 'reports' / '02_gru_readiness'
 
 def fingerprint(path):
     digest = hashlib.sha256()

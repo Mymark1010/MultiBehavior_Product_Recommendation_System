@@ -22,7 +22,7 @@ Danh sách việc cần làm nằm trong `TASKS_HOAN_THIEN.md`. Đọc file đó
 - Tìm thư mục gốc project bằng cách dò thư mục cha từ `Path.cwd()` (giống notebook 01/02). Không ghi đường dẫn tuyệt đối vào code, output hay report.
 - Ghi JSON bằng `write_text(..., encoding="utf-8", newline="\n")` để mã băm giống nhau trên Windows/macOS/Linux.
 - Ghi Parquet theo mẫu `save_verified()` của notebook 02: ghi file tạm → đọc lại → `assert_frame_equal(check_exact=True)` → `replace`.
-- Mỗi notebook mới có: (1) một cell kiểm tra đầu vào khớp SHA-256 trong report của bước trước, (2) các ví dụ biên bằng `assert` trên dữ liệu nhỏ tự tạo, (3) report `reports/<buoc>/metrics.json`.
+- Mỗi notebook mới có: (1) một cell kiểm tra đầu vào khớp SHA-256 trong report của bước trước, (2) các ví dụ biên bằng `assert` trên dữ liệu nhỏ tự tạo, (3) report `reports/NN_<buoc>/metrics.json` (`NN` = số notebook ghi report; xem `REPORT_DIRS` trong `src/rr/io.py`).
 - Đặt tên notebook `notebooks/NN_ten_khong_dau.ipynb`. Markdown giải thích bằng tiếng Việt, code và tên cột bằng tiếng Anh.
 - Chạy kiểm tra không tương tác: `jupyter nbconvert --to notebook --execute --inplace notebooks/<file>.ipynb`.
 - Không commit `*.parquet`, `data/raw/*.csv` và các file lớn (đã có trong `.gitignore`).

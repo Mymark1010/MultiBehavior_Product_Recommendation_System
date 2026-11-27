@@ -32,3 +32,11 @@ def test_find_root(tmp_path):
     assert find_root(start=tmp_path / "notebooks") == tmp_path.resolve()
     with pytest.raises(FileNotFoundError):
         find_root(marker="nope", start=tmp_path)
+
+
+def test_report_path_points_to_existing_step_reports():
+    from pathlib import Path
+    from rr.io import REPORT_DIRS, report_path
+    root = Path(__file__).resolve().parents[1]
+    for step in REPORT_DIRS:
+        assert report_path(root, step).exists(), step

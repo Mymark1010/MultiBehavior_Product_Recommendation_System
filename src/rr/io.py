@@ -24,6 +24,22 @@ def find_root(marker: str = "data/raw/events.csv", start: Path | None = None) ->
     raise FileNotFoundError(f"Không tìm thấy thư mục project chứa {marker}; mở notebook từ project hoặc notebooks/.")
 
 
+# Report folder of each pipeline step; the number prefix is the notebook that writes it.
+REPORT_DIRS = {
+    "events_clean": "01_events_clean",        # notebook 01
+    "session_split": "02_session_split",      # notebook 02
+    "data_validation": "02_data_validation",  # notebook kiem_tra_ket_qua_xu_ly
+    "gru_readiness": "02_gru_readiness",      # scripts/audit_gru_readiness.py
+    "metadata": "03_metadata",                # notebook 03
+    "samples": "04_samples",                  # notebook 04
+}
+
+
+def report_path(root: Path, step: str) -> Path:
+    """``reports/<NN_step>/metrics.json`` of a data step (see ``REPORT_DIRS``)."""
+    return Path(root) / "reports" / REPORT_DIRS[step] / "metrics.json"
+
+
 def rel(path: Path, root: Path) -> str:
     return Path(path).resolve().relative_to(root.resolve()).as_posix()
 
