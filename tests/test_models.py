@@ -86,33 +86,11 @@ def test_behavior_weights_change_item_scores():
 
 def test_unknown_prefix_items_are_ignored():
     e = ev([(1, 1, 1, "view", 0), (1, 2, 2, "view", 1)])
-    items, _ = SessionKNN("vsknn", k=5, sample_size=5).fit(e).recommend(pre([(0, 99, "view", 0)]), [0], [10], width=3)
+    items, _ = SessionKNN("stan", k=5, sample_size=5).fit(e).recommend(pre([(0, 99, "view", 0)]), [0], [10], width=3)
     assert (items == -1).all()
-    with pytest.raises(ValueError):
-        SessionKNN("other")
-
-
-def test_spop_frequency_then_popularity():
-    from rr.models import spop
-    p = pre([(0, 5, "view", 2), (0, 5, "view", 1), (0, 6, "view", 0), (0, 7, "view", 0)])
-    items, _ = spop(p, [0], dict(view=1, addtocart=1, transaction=1), pop_items=[7, 6], pop_scores=[10, 3], width=4)
-    assert items[0].tolist() == [5, 7, 6, -1]  # 5 seen twice; 6/7 tie broken by popularity
-    items, _ = spop(p, [0], dict(view=1, addtocart=1, transaction=1), pop_items=[6, 7], pop_scores=[10, 3], width=4)
-    assert items[0].tolist() == [5, 6, 7, -1]
-
-
-def test_sequential_rules_by_hand():
-    from rr.models import SequentialRules
-    # session 1: g1 {1}, g2 {2, 3}, g3 {4}; session 2: g1 {1}, g2 {4}
-    e = ev([(1, 1, 1, "view", 0), (1, 2, 2, "view", 1), (1, 2, 3, "view", 1), (1, 3, 4, "view", 2),
-            (2, 1, 1, "view", 3), (2, 2, 4, "view", 4)])
-    sr = SequentialRules(steps=2).fit(e)
-    items, scores = sr.recommend(pre([(0, 9, "view", 1), (0, 1, "view", 0)]), [0], width=4)
-    # 1->4: 1/2 (session 1, d=2) + 1 (session 2) = 1.5; 1->2 = 1->3 = 1; items inside g2 are not rules of each other
-    assert items[0].tolist() == [4, 2, 3, -1]
-    np.testing.assert_allclose(scores[0, :3], [1.5, 1.0, 1.0])
-    items, _ = sr.recommend(pre([(0, 2, "view", 0)]), [0], width=4)
-    assert items[0].tolist() == [4, -1, -1, -1]
+    for removed in ["other", "vsknn"]:  # V-SKNN removed in protocol v1.3.2
+        with pytest.raises(ValueError):
+            SessionKNN(removed)
 
 
 def test_vstan_idf_downweights_ubiquitous_items():

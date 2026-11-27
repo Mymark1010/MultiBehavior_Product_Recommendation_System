@@ -1,7 +1,9 @@
 """GRU4Rec over timestamp groups (PyTorch, CPU), as fixed in configs/protocol.json -> gru4rec.
 
 * Input of step t: mean embedding of the in-vocabulary items of group t + mean embedding of its
-  distinct behaviors. Out-of-vocabulary input items are dropped (PAD); the behavior part is kept.
+  distinct behaviors (``use_behavior=True``, the multi-behavior model), or the item part alone
+  (``use_behavior=False``, the original item-only GRU4Rec). Out-of-vocabulary input items are
+  dropped (PAD); the behavior part is kept.
 * The output of step t predicts the item set of group t+1. Hidden state starts at zero for every
   session (or training window), so nothing flows between sessions.
 * Loss: sampled softmax cross-entropy. Candidates of a batch = unique(in-batch positives ∪ shared
@@ -84,15 +86,17 @@ class GRU4Rec(nn.Module):
     ``constrained=True`` follows the official GRU4Rec "constrained embedding": the item embedding
     used for the input bag is the same matrix used to score output items, and its size equals the
     hidden size (no output projection). Item embeddings and biases use sparse gradients.
+    ``use_behavior=False`` removes the behavior embedding entirely (original item-only GRU4Rec).
     """
 
     def __init__(self, n_items: int, dim: int = 64, hidden: int = 100, dropout: float = 0.0,
-                 dropout_embed: float | None = None, constrained: bool = False):
+                 dropout_embed: float | None = None, constrained: bool = False, use_behavior: bool = True):
         super().__init__()
         self.constrained = constrained
+        self.use_behavior = use_behavior
         dim = hidden if constrained else dim
         self.item_in = nn.Embedding(n_items, dim, sparse=True)
-        self.beh_in = nn.EmbeddingBag(len(BEHAVIORS), dim, mode="mean")
+        self.beh_in = nn.EmbeddingBag(len(BEHAVIORS), dim, mode="mean") if use_behavior else None
         self.gru = nn.GRU(dim, hidden, batch_first=True)
         self.drop_embed = nn.Dropout(dropout if dropout_embed is None else dropout_embed)
         self.drop = nn.Dropout(dropout)
@@ -101,6 +105,8 @@ class GRU4Rec(nn.Module):
         self.bias = nn.Embedding(n_items, 1, sparse=True)
         self.out_dim = dim
         nn.init.normal_(self.item_in.weight, std=0.05)
+        if self.beh_in is not None:  # same scale as items (the N(0, 1) default swamped the item mean)
+            nn.init.normal_(self.beh_in.weight, std=0.05)
         if not constrained:
             nn.init.normal_(self.item_out.weight, std=0.05)
         nn.init.zeros_(self.bias.weight)
@@ -113,7 +119,8 @@ class GRU4Rec(nn.Module):
         groups = grid[mask]
         (it, it_off), (bh, bh_off) = data.bags(groups)
         x = nn.functional.embedding_bag(it, self.item_in.weight, it_off, mode="mean", sparse=True)
-        x = x + self.beh_in(bh, bh_off)
+        if self.beh_in is not None:
+            x = x + self.beh_in(bh, bh_off)
         inp = torch.zeros(b, l, x.shape[1])
         inp[torch.from_numpy(mask)] = x
         inp = self.drop_embed(inp)
@@ -241,7 +248,6 @@ def query_states(model, data: GroupData, queries: pd.DataFrame, batch_size: int 
     if mode == "sequential":
         sess_rows = np.unique(pos)
         lengths_all = data.s_len[sess_rows]
-        row_of = {int(s): i for i, s in enumerate(sess_rows)}
         order = np.argsort(lengths_all, kind="stable")
         result = {}
         for i in range(0, len(order), batch_size):
@@ -330,4 +336,5 @@ def fit(model, data, windows, epochs, lr=1e-3, batch_size=256, n_neg=2048, seed=
 def build_from_config(cfg: dict, n_items: int | None = None) -> GRU4Rec:
     """Model skeleton from ``models/gru4rec/config.json`` (``n_items`` overrides it for a refit vocabulary)."""
     return GRU4Rec(n_items or cfg["n_items"], dim=cfg.get("dim", 64), hidden=cfg["hidden"], dropout=cfg["dropout"],
-                   dropout_embed=cfg.get("dropout_embed"), constrained=cfg["constrained"])
+                   dropout_embed=cfg.get("dropout_embed"), constrained=cfg["constrained"],
+                   use_behavior=cfg.get("use_behavior", True))

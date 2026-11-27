@@ -104,18 +104,6 @@ def repeat_last(prefix: pd.DataFrame, query_ids, width: int = 50):
     return rank_long(agg["row"].to_numpy(), agg["itemid"].to_numpy(), score, len(query_ids), width)
 
 
-def spop(prefix: pd.DataFrame, query_ids, weights: dict, pop_items, pop_scores, width: int = 50):
-    """S-POP: behavior-weighted frequency of each item in the prefix; ties by fitting popularity, then itemid."""
-    row_of = pd.Series(np.arange(len(query_ids)), index=np.asarray(query_ids))
-    w = behavior_weights(weights)[event_codes(prefix["event"])]
-    f = pd.DataFrame({"row": row_of.reindex(prefix["query_id"].to_numpy()).to_numpy(),
-                      "itemid": prefix["itemid"].to_numpy(), "w": w}).groupby(["row", "itemid"], as_index=False)["w"].sum()
-    pop = pd.Series(np.asarray(pop_scores, dtype=float), index=np.asarray(pop_items))
-    tie = pop.reindex(f["itemid"].to_numpy()).fillna(0).to_numpy()
-    tie = tie / (tie.max() + 1) if len(tie) else tie  # in [0, 1): never overrides a frequency difference
-    return rank_long(f["row"].to_numpy(), f["itemid"].to_numpy(), f["w"].to_numpy() + tie, len(query_ids), width)
-
-
 def prefix_matrix(prefix: pd.DataFrame, query_ids, max_items=None):
     """Distinct prefix items per query as an int64 matrix padded with -1 (for exclude_seen)."""
     row_of = pd.Series(np.arange(len(query_ids)), index=np.asarray(query_ids))
@@ -133,9 +121,8 @@ def query_weights(prefix: pd.DataFrame, query_ids, index: ItemIndex, scheme: str
                   decay: float = 1.0, lam: float = 1.0):
     """Long (row, item_pos, weight, distance) of the query vector; one entry per (query, item).
 
-    scheme: ``binary`` (1), ``power`` (decay**distance), ``linear`` (V-SKNN: (L - d) / L with L the
-    number of prefix groups considered), ``exp`` (STAN: exp(-d / lam)). Optional behavior weight of
-    the strongest prefix event of that item multiplies the weight.
+    scheme: ``binary`` (1), ``power`` (decay**distance), ``exp`` (STAN: exp(-d / lam)). Optional behavior
+    weight of the strongest prefix event of that item multiplies the weight.
     """
     row_of = pd.Series(np.arange(len(query_ids)), index=np.asarray(query_ids))
     pos = index.pos(prefix["itemid"].to_numpy())
@@ -146,9 +133,6 @@ def query_weights(prefix: pd.DataFrame, query_ids, index: ItemIndex, scheme: str
         w = np.ones_like(d)
     elif scheme == "power":
         w = decay ** d
-    elif scheme == "linear":
-        span = pd.Series(d).groupby(rows).transform("max").to_numpy() + 1
-        w = (span - d) / span
     elif scheme == "exp":
         w = np.exp(-d / lam)
     else:
@@ -205,50 +189,9 @@ class ItemKNN:
         return items, scores
 
 
-# ---------------------------------------------------------------- Sequential rules
-class SequentialRules:
-    """SR (Ludewig & Jannach): rule i -> j gets 1/d each time an item j appears d groups after item i
-    (1 <= d <= steps) in a fitting session, weighted by the behavior weight of j. Items inside one
-    timestamp group are never ordered. Scores come from the items of the last prefix group."""
-
-    def __init__(self, steps: int = 10, n_rules: int = 200, weights: dict | None = None):
-        self.steps, self.n_rules = steps, n_rules
-        self.weights = weights or dict.fromkeys(BEHAVIORS, 1)
-
-    def fit(self, events: pd.DataFrame):
-        self.index = ItemIndex(events["itemid"].to_numpy())
-        bw = behavior_weights(self.weights)
-        f = pd.DataFrame({"s": events["session_id"].to_numpy(), "g": events["group_index"].to_numpy(),
-                          "i": self.index.pos(events["itemid"].to_numpy()), "w": bw[event_codes(events["event"])]})
-        f = f.groupby(["s", "g", "i"], as_index=False)["w"].max()
-        multi = f.groupby("s")["g"].transform("nunique") >= 2
-        f = f[multi]
-        rows, cols, vals = [], [], []
-        for d in range(1, self.steps + 1):
-            later = f.assign(g=f["g"] - d)
-            m = f[["s", "g", "i"]].merge(later, on=["s", "g"], suffixes=("_a", "_b"))
-            rows.append(m["i_a"].to_numpy()); cols.append(m["i_b"].to_numpy()); vals.append(m["w"].to_numpy() / d)
-        n = len(self.index)
-        rules = sp.csr_matrix((np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))), shape=(n, n))
-        self.rules = topn_csr(rules, self.n_rules)
-        return self
-
-    def recommend(self, prefix: pd.DataFrame, query_ids, width: int = 200, chunk: int = 20_000):
-        last = prefix[prefix["distance"] == 0]
-        rows, pos, w, _ = query_weights(last, query_ids, self.index, "binary")
-        n = len(query_ids)
-        q = sp.csr_matrix((w, (rows, pos)), shape=(n, len(self.index)))
-        items = np.full((n, width), PAD_ITEM, dtype=np.int64)
-        scores = np.full((n, width), np.nan)
-        for start in range(0, n, chunk):
-            it, sc = csr_to_ranked((q[start:start + chunk] @ self.rules).tocsr(), self.index.items, width)
-            items[start:start + chunk], scores[start:start + chunk] = it, sc
-        return items, scores
-
-
 # ---------------------------------------------------------------- Session-KNN family
 class SessionKNN:
-    """SKNN / V-SKNN / STAN / VSTAN over the sessions of the fitting data.
+    """SKNN / STAN / VSTAN over the sessions of the fitting data.
 
     * Store: sessions with >= 2 distinct items. For every item only the ``sample_size`` most recent
       sessions (by session end) are indexed; candidate neighbours of a query are the union over its
@@ -264,7 +207,7 @@ class SessionKNN:
     def __init__(self, variant: str = "sknn", k: int = 100, sample_size: int = 500, weights: dict | None = None,
                  lambda1: float = 2.0, lambda2_ms: float = 7 * 86_400_000, lambda3: float = 2.0,
                  lambda_idf: float = 1.0):
-        if variant not in {"sknn", "vsknn", "stan", "vstan"}:
+        if variant not in {"sknn", "stan", "vstan"}:
             raise ValueError(variant)
         self.variant, self.k, self.sample_size = variant, k, sample_size
         self.weights = weights or dict.fromkeys(BEHAVIORS, 1)
@@ -305,7 +248,7 @@ class SessionKNN:
         return self
 
     def _query_vectors(self, prefix, query_ids):
-        scheme = {"sknn": "binary", "vsknn": "linear", "stan": "exp", "vstan": "exp"}[self.variant]
+        scheme = {"sknn": "binary", "stan": "exp", "vstan": "exp"}[self.variant]
         return query_weights(prefix, query_ids, self.index, scheme, lam=self.lambda1)
 
     def recommend(self, prefix: pd.DataFrame, query_ids, query_times, width: int = 200, chunk: int = 2_000):

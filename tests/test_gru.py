@@ -70,6 +70,26 @@ def test_loss_decreases_and_learns_transition():
     assert items[:, 0].tolist() == [2, 3]
 
 
+def test_behavior_embedding_switch():
+    """Item-only GRU4Rec ignores behaviors; the multi-behavior model separates them."""
+    from rr.gru import build_from_config
+    ev_view = pd.DataFrame({"session_id": [1, 1], "group_index": [1, 2], "itemid": [10, 11], "event": ["view", "view"]})
+    ev_cart = ev_view.assign(event=["addtocart", "view"])
+    vocab = build_vocab(ev_view)
+    q = pd.DataFrame({"session_id": [1], "prefix_len_groups": [1]})
+    n = int(vocab["item_idx"].max()) + 1
+    for use_behavior in [False, True]:
+        torch.manual_seed(0)
+        model = GRU4Rec(n, hidden=8, constrained=True, use_behavior=use_behavior).eval()
+        assert (model.beh_in is not None) == use_behavior
+        a = query_states(model, GroupData(ev_view, vocab), q)
+        b = query_states(model, GroupData(ev_cart, vocab), q)
+        assert torch.allclose(a, b) == (not use_behavior)
+    cfg = {"n_items": n, "hidden": 8, "dropout": 0.0, "constrained": True}
+    assert build_from_config(cfg).use_behavior  # configs saved before the switch keep behaviors
+    assert not build_from_config({**cfg, "use_behavior": False}).use_behavior
+
+
 @pytest.mark.parametrize("loss,constrained", [("bpr-max", False), ("cross-entropy", True), ("bpr-max", True)])
 def test_other_losses_and_constrained_embedding_learn(loss, constrained):
     torch.manual_seed(0)
@@ -89,3 +109,11 @@ def test_other_losses_and_constrained_embedding_learn(loss, constrained):
     q = pd.DataFrame({"session_id": [0, 0], "prefix_len_groups": [1, 2]})
     items, _ = topn_items(model, query_states(model, data, q), idx_to_itemid(vocab), n=1)
     assert items[:, 0].tolist() == [2, 3]
+
+
+def test_behavior_embedding_same_scale_as_items():
+    """The behavior part of the step input must not swamp the item mean at initialisation."""
+    torch.manual_seed(0)
+    model = GRU4Rec(1000, hidden=224, constrained=True)
+    item_std, beh_std = model.item_in.weight.std().item(), model.beh_in.weight.std().item()
+    assert 0.5 < beh_std / item_std < 2
