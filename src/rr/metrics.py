@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 PAD_ITEM = -1
-KS = (10, 20)
+KS = (20,)  # protocol v1.3.2: K = 20 only
 METRICS = ("hit", "recall", "mrr", "ndcg")
 PREFIX_BINS = [(1, 1, "1"), (2, 4, "2-4"), (5, 9, "5-9"), (10, None, "10+")]
 

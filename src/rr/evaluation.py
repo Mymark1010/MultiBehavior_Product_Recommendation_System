@@ -22,10 +22,6 @@ def load_samples(root: Path, split: str):
     return queries, targets
 
 
-def fitting_filter(vocab: pd.DataFrame, catalog: pd.DataFrame, history: pd.DataFrame, known_at_column: str):
-    return CandidateFilter.from_frames(vocab, catalog, history, known_at_column)
-
-
 def run(candidates, cand_scores, queries: pd.DataFrame, targets: pd.DataFrame, flt: CandidateFilter,
         fallback_items, fallback_scores=None, exclude=None, k: int = K_MAX):
     """Finalize Top-K (filter at t, dedupe, fallback) and evaluate. Returns (report, per_query, topk, is_fallback)."""
@@ -51,13 +47,11 @@ def flat(reports: dict, part: str = "all", cols=None) -> pd.DataFrame:
 
 
 def fit_neighbour_model(family: str, selected: dict, fit_events: pd.DataFrame):
-    """Fit the selected configuration of a kNN/SR family (``knn_validation.json -> selected``)."""
-    from rr.models import ItemKNN, SequentialRules, SessionKNN
+    """Fit the selected configuration of a neighbour model (``knn_validation.json -> selected``)."""
+    from rr.models import ItemKNN, SessionKNN
     cfg = selected[family]
     if family == "itemknn":
         return ItemKNN(cfg["structure"]["n_neighbors"], cfg["weights"]).fit(fit_events)
-    if family == "sr":
-        return SequentialRules(weights=cfg["weights"], **cfg["structure"]).fit(fit_events)
     return SessionKNN(family, weights=cfg["weights"], **cfg["structure"]).fit(fit_events)
 
 
@@ -65,6 +59,4 @@ def recommend_neighbour(model, family: str, selected: dict, prefix: pd.DataFrame
                         width: int = 200):
     if family == "itemknn":
         return model.recommend(prefix, query_ids, width, decay=selected[family]["structure"]["decay"])
-    if family == "sr":
-        return model.recommend(prefix, query_ids, width)
     return model.recommend(prefix, query_ids, query_times, width)

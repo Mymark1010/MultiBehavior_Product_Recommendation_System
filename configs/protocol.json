@@ -1,7 +1,7 @@
 {
-  "version": "1.2.0",
-  "decided_at": "2026-11-23",
-  "decided_by": "Người dùng xác nhận các đề xuất mặc định D1–D6 trong TASKS_HOAN_THIEN.md; D4 chọn sampled softmax CE vì máy không có GPU CUDA. v1.1.0 (2026-11-23): người dùng duyệt các bổ sung sau review: tách theo hành vi target, paired bootstrap, V-SKNN/STAN, biến thể loại item đã xem, giới hạn fallback top-N, cắt prefix cho KNN. v1.2.0 (2026-11-23): người dùng chọn bộ phương pháp theo tài liệu 'Tổng quan phương pháp gợi ý theo phiên trên RetailRocket' (GRU4Rec tự cài theo bản chính thức, SR-GNN nút = item cạnh giữa nhóm, reranker kiểu HySAR, bài toán 2 = cart/mua ở nhóm kế tiếp) và bỏ luật available khỏi bộ lọc ứng viên chính vì 17,6% target validation có available = 0 tại t.",
+  "version": "1.3.2",
+  "decided_at": "2026-11-26",
+  "decided_by": "Người dùng xác nhận các đề xuất mặc định D1–D6 trong TASKS_HOAN_THIEN.md; D4 chọn sampled softmax CE vì máy không có GPU CUDA. v1.1.0 (2026-11-23): người dùng duyệt các bổ sung sau review: paired bootstrap, V-SKNN/STAN, biến thể loại item đã xem, giới hạn fallback top-N, cắt prefix cho KNN. v1.2.0 (2026-11-23): người dùng chọn bộ phương pháp theo tài liệu 'Tổng quan phương pháp gợi ý theo phiên trên RetailRocket' (GRU4Rec tự cài theo bản chính thức, SR-GNN nút = item cạnh giữa nhóm) và bỏ luật available khỏi bộ lọc ứng viên chính vì 17,6% target validation có available = 0 tại t. v1.3.0 (2026-11-24): người dùng thu hẹp phạm vi: chỉ bài toán tương tác kế tiếp; so sánh hai ngưỡng phiên 30 và 60 phút; trọng tâm là GRU4Rec gốc (chỉ item) so với GRU4Rec có embedding hành vi; mốc tham chiếu Popularity, Repeat-last, VSTAN, SR-GNN; người dùng duyệt đọc test thêm một lần cho bộ so sánh này (notebook 10). v1.3.1 (2026-11-26): người dùng tạm bỏ SR-GNN khỏi phạm vi và xóa notebook 08, src/rr/srgnn.py, test, mô hình và report của nó; mốc tham chiếu còn Popularity, Repeat-last, VSTAN. Lần chạy test v1.3.0 đang dở (có SR-GNN) bị dừng và xóa toàn bộ output; người dùng duyệt chạy lại test một lần với phạm vi v1.3.1, nên test đã được đọc một phần trước đó. v1.3.2 (2026-11-26): người dùng bỏ S-POP, SR và V-SKNN (notebook 05, 06 và code dùng chung) và chỉ giữ chỉ số tại K = 20; lần chạy test v1.3.1 được chặn trước khi đọc test, chạy lại 04 → 06, 09, 10 rồi mới đọc test một lần.",
   "seed": 2026,
   "raw_files": {
     "data/raw/events.csv": {
@@ -121,7 +121,7 @@
   },
   "gru4rec": {
     "decision": "D4",
-    "input_per_step": "mean item embedding of the timestamp group + mean behavior embedding (view/addtocart/transaction)",
+    "input_per_step": "gru4rec: mean item embedding of the timestamp group + mean behavior embedding (view/addtocart/transaction); gru4rec_item: mean item embedding only (same architecture and hyperparameters, behavior embedding removed)",
     "hidden_reset": "between sessions",
     "loss": "selected on validation among cross-entropy (sampled softmax, log-Q corrected) and bpr-max; see methods.gru4rec",
     "multi_item_targets": "uniform label split: each correct item gets weight 1/|G|",
@@ -135,9 +135,9 @@
   },
   "evaluation": {
     "ks": [
-      10,
       20
     ],
+    "ks_note": "K = 10 dropped in v1.3.2 (user, 2026-11-26): every report uses K = 20 only",
     "primary_metric": "ndcg@20",
     "metrics": [
       "hit",
@@ -149,9 +149,7 @@
     "denominator": "every query with non-empty target, including out-of-vocabulary targets (score 0)",
     "breakdowns": [
       "all / new / repeat targets",
-      "prefix length bins",
-      "target item train popularity bins",
-      "target behavior: queries whose target has addtocart/transaction vs view-only targets"
+      "prefix length bins"
     ],
     "bootstrap": {
       "n_resamples": 1000,
@@ -165,11 +163,10 @@
       "n_resamples": 1000,
       "seed": 2026,
       "level": 0.95,
-      "use": "difference between each model and the best baseline, same resampled queries for both"
+      "use": "differences listed in scope.comparisons, same resampled queries for both models"
     },
     "tasks": {
-      "task1_next_interaction": "target = distinct items of group t+1, every behavior (all queries)",
-      "task2_next_cart_or_purchase": "queries whose group t+1 has an addtocart/transaction event; target = the items of group t+1 with addtocart/transaction (metrics key: strong_behavior_targets)"
+      "next_interaction": "next interaction only: target = distinct items of group t+1, every behavior, all queries"
     }
   },
   "behavior_weights": {
@@ -198,7 +195,7 @@
   },
   "code_layout": {
     "decision": "D6",
-    "shared_code": "src/rr (io, metrics, candidates, samples, models, gru, srgnn, rerank, evaluation)",
+    "shared_code": "src/rr (io, metrics, candidates, samples, models, gru, evaluation, ablation, demo)",
     "tests": "python -m pytest tests",
     "independent_notebooks": [
       "01",
@@ -209,13 +206,12 @@
   "exclude_seen": {
     "decision": "review 2026-11-23",
     "variant": "every model except Repeat-last is also evaluated with prefix items removed from its candidates",
-    "primary": "models are selected on the default variant (prefix items allowed); exclude_seen is reported next to it, mainly for new targets"
+    "primary": "models are selected on the default variant (prefix items allowed); exclude_seen is reported in the validation notebooks 05-07 only, not in the final test of scope v1.3.x"
   },
   "knn": {
     "models": [
       "itemknn",
       "sknn",
-      "vsknn",
       "stan"
     ],
     "max_prefix_groups": 50,
@@ -226,33 +222,53 @@
     "source": "docs: Tổng quan phương pháp gợi ý theo phiên trên RetailRocket (2026-11-23)",
     "baselines": {
       "popularity": "uniform and behavior-weighted counts",
-      "spop": "S-POP: behavior-weighted frequency of the item in the prefix, ties by train popularity, filled by Popularity",
       "repeat_last": "D1 baseline (recency)"
     },
     "knn": {
       "sknn": "binary cosine",
-      "vsknn": "linear position decay in the prefix",
       "stan": "STAN (lambda1 prefix position, lambda2 neighbour recency, lambda3 neighbour position)",
       "vstan": "STAN + IDF weighting of shared items and of candidate items (lambda_idf)",
-      "sr": "sequential rules: items of group g -> items of group g+d, weight 1/d for d <= steps; scored from the last prefix group",
       "itemknn": "kept from T11 as an extra non-sequential neighbour baseline"
     },
-    "gru4rec": "own implementation following the official GRU4Rec feature set (Hidasi & Czapp 2023): losses cross-entropy and bpr-max (elu, bpreg), shared negative sampling n_sample=2048 with sample_alpha, optional constrained embedding; grid starts from the official RetailRocket setting (hidden 224, batch 80); input = timestamp group + behavior embedding",
-    "srgnn": "gated GNN on the prefix graph: nodes = distinct prefix items (+ mean behavior embedding of their events), directed edges from every item of group g to every item of group g+1 (no fake order inside a group); readout = attention over nodes with the last-group items as local interest; sampled softmax as GRU4Rec",
-    "reranker": "HySAR-style LightGBM lambdarank over the union of candidates of the best kNN model and GRU4Rec; features: base scores and ranks, prefix behavior counts/recency of the item, item popularity, repeat flag, category match at t; trained on validation queries (base models fitted on train), hyperparameters chosen by session-grouped cross-validation on validation; applied to test with base models of the evaluated variant",
+    "gru4rec": "own implementation following the official GRU4Rec feature set (Hidasi & Czapp 2023): losses cross-entropy and bpr-max (elu, bpreg), shared negative sampling n_sample=2048 with sample_alpha, optional constrained embedding; grid starts from the official RetailRocket setting (hidden 224, batch 80); input = timestamp group, with (gru4rec) or without (gru4rec_item) behavior embedding; optimiser and regularisation differ from the official RetailRocket paramfile (here Adam/SparseAdam lr 0.002, sample_alpha 0.5, bpreg 1.0; official: Adagrad lr 0.05 with momentum 0.4, sample_alpha 0.4, bpreg 1.95, 10 epochs); notebook 13 runs the official code on validation as a check",
     "not_in_scope": [
-      "MGNN-SPred (only if time allows after the reranker)",
+      "SR-GNN (removed in v1.3.1, 2026-11-26)",
+      "S-POP, SR, V-SKNN (removed in v1.3.2, 2026-11-26)",
+      "MGNN-SPred",
       "MB-GRL (no code checked)"
     ]
   },
   "notebooks": {
     "04": "vocabulary and samples",
-    "05": "evaluation, Popularity, S-POP, Repeat-last",
-    "06": "kNN family and SR",
+    "05": "evaluation, Popularity, Repeat-last",
+    "06": "kNN family (SKNN, STAN, VSTAN) and ItemKNN",
     "07": "GRU4Rec",
-    "08": "SR-GNN",
-    "09": "HySAR-style reranker",
-    "10": "final test run",
-    "11": "demo"
+    "09": "GRU4Rec item-only vs behavior and 30/60-minute sessions: data and selection on validation",
+    "10": "final test run (next interaction, 30 and 60 minutes)",
+    "11": "demo",
+    "12": "data ablations (secondary analysis)"
+  },
+  "scope": {
+    "version": "1.3.2",
+    "task": "next interaction only: target = distinct items of group t+1, every behavior, all queries",
+    "session_thresholds_ms": [
+      1800000,
+      3600000
+    ],
+    "session_threshold_note": "notebooks 01-07 build the 30-minute data (locked_protocol); notebook 09 rebuilds sessions, groups, split (same cutoffs) and samples for 60 minutes with the same rules; both thresholds are reported",
+    "focus_models": {
+      "gru4rec_item": "original GRU4Rec input: mean item embedding of the timestamp group only",
+      "gru4rec": "multi-behavior GRU4Rec: mean item embedding + mean behavior embedding (view/addtocart/transaction) of the group"
+    },
+    "reference_models": [
+      "popularity",
+      "repeat_last",
+      "vstan"
+    ],
+    "comparisons": [
+      "gru4rec vs gru4rec_item on the same queries (paired bootstrap), each threshold",
+      "60-minute vs 30-minute models on the same queries (q30 and q60), each model",
+      "each model vs Repeat-last"
+    ]
   }
 }

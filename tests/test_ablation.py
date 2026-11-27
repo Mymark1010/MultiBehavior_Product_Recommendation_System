@@ -85,3 +85,42 @@ def test_topk_matrix_aligns_and_pads():
     assert m.tolist() == [[72, -1, -1], [70, 71, -1], [-1, -1, -1]]
     with pytest.raises(ValueError):
         topk_matrix(long, [4], k=3)
+
+
+def test_score_models_subset_and_gru_variants():
+    pytest.importorskip("torch")
+    from rr.ablation import score_models
+    rows = []
+    for v in range(1, 21):  # train sessions: 10 -> 11 (cart) -> 12
+        t0 = v * 10 * MIN
+        rows += [(v, t0, 10, "view"), (v, t0 + MIN, 11, "addtocart"), (v, t0 + 2 * MIN, 12, "view")]
+    rows += [(99, 2500 * MIN, 10, "view"), (99, 2501 * MIN, 11, "view"), (99, 2502 * MIN, 77, "view")]  # test; 77 OOV
+    ev = sessionize(clean(rows), 30 * MIN, (1000 * MIN, 2000 * MIN))
+    fit_ev = ev[ev["split"] == "train"].reset_index(drop=True)
+    test_ev = ev[ev["split"] == "test"].reset_index(drop=True)
+    tq, tt = build_samples(ev, "test", first_query_id=100)
+    catalog = pd.DataFrame({"itemid": [10, 11, 12, 77], "first_property_ms": pd.array([pd.NA] * 4, dtype="Int64")})
+    known = known_at_for(catalog, fit_ev, "known_at_train_ms")
+    history = pd.DataFrame({"itemid": pd.Series([], dtype=np.int64), "timestamp": pd.Series([], dtype=np.int64),
+                            "property": pd.Series([], dtype=str), "value": pd.Series([], dtype=str)})
+    gru = {"hidden": 8, "dropout": 0.0, "constrained": True, "epochs": 2, "lr": 0.01, "batch_size": 4, "n_neg": 2,
+           "loss": "cross-entropy", "bpreg": 1.0, "elu": 0.5, "sample_alpha": 0.5}
+    w = {"view": 1, "addtocart": 1, "transaction": 1}
+    cfg = {"popularity": {"fallback_weights": w, "popularity_behavior_weights": w}, "fallback_top_n": 10, "max_groups": 50,
+           "max_len": 10, "seed": 0, "width": 5, "root": None, "model_dir": "unused",
+           "models": ["popularity", "repeat_last", "gru4rec_item", "gru4rec"],
+           "gru_variants": {"gru4rec_item": {**gru, "use_behavior": False}, "gru4rec": gru}}
+    res, models = score_models(fit_ev, test_ev, tq, tt, known, history, "known_at_train_ms", cfg, "train",
+                               log=lambda m: None, keep_topk=("gru4rec",))
+    assert sorted(res) == ["gru4rec", "gru4rec_item", "popularity", "repeat_last"]
+    assert not models["gru4rec_item"].use_behavior and models["gru4rec"].use_behavior
+    assert res["gru4rec"]["topk"][0].shape == (len(tq), 20) and "topk" not in res["gru4rec_item"]
+    assert all(r["report"]["all"]["n_queries"] == len(tq) for r in res.values())  # OOV target stays in the denominator
+    again, _ = score_models(fit_ev, test_ev, tq, tt, known, history, "known_at_train_ms", cfg, "reuse",
+                            neural_models=models, log=lambda m: None)
+    assert again["gru4rec"]["report"]["all"]["ndcg@20"] == res["gru4rec"]["report"]["all"]["ndcg@20"]
+    with pytest.raises(ValueError):
+        score_models(fit_ev, test_ev, tq, tt, known, history, "known_at_train_ms", {**cfg, "models": ["no_such_model"]}, "skip")
+    for removed in ["srgnn", "spop", "sr", "vsknn"]:  # removed in protocol v1.3.1 / v1.3.2
+        with pytest.raises(ValueError):
+            score_models(fit_ev, test_ev, tq, tt, known, history, "known_at_train_ms", {**cfg, "models": [removed]}, "skip")

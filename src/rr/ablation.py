@@ -1,4 +1,4 @@
-"""Data ablations for notebook 12: heavy visitors, merged repeated groups, another session threshold.
+"""Session thresholds and data ablations (notebooks 09, 10 and 12).
 
 Nothing here changes the locked protocol: every function returns new in-memory frames and the
 main pipeline (notebooks 01-10) keeps reading its own artifacts.
@@ -9,9 +9,8 @@ main pipeline (notebooks 01-10) keeps reading its own artifacts.
   ``(itemid, event)`` pairs equals the previous group of the same session is dropped.
 * :func:`heavy_visitor_thresholds` / :func:`flag_heavy_visitors` define abnormal visitors from the
   per-(visitor, UTC day) activity of the train split only.
-* :func:`score_models` fits the frozen configuration of every non-reranker model on a frame of
-  fitting events and scores one evaluation sample, through the same filter/fallback/metrics as
-  notebook 10.
+* :func:`score_models` fits the frozen configuration of each model on a frame of fitting events and
+  scores one evaluation sample, through the same filter/fallback/metrics as notebook 10.
 """
 from __future__ import annotations
 
@@ -173,38 +172,42 @@ def topk_matrix(long: pd.DataFrame, query_ids, k: int = 20) -> np.ndarray:
 
 
 # ---------------------------------------------------------------- model scoring
-NON_NEURAL = ["popularity", "spop", "repeat_last", "itemknn", "sknn", "vsknn", "stan", "vstan", "sr"]
-NEURAL = ["gru4rec", "srgnn"]
+NON_NEURAL = ["popularity", "repeat_last", "itemknn", "sknn", "stan", "vstan"]
 
 
 def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd.DataFrame, eval_t: pd.DataFrame,
                  catalog: pd.DataFrame, history: pd.DataFrame, known_at_column: str, cfg: dict, neural: str,
-                 fit_samples=None, neural_models=None, log=print, keep_lists=()):
-    """Fit every non-reranker model with its frozen configuration and score ``eval_q``.
+                 neural_models=None, log=print, keep_topk=()):
+    """Fit the frozen configuration of each model on ``fit_events`` and score ``eval_q``.
 
-    ``cfg``: ``popularity``, ``spop_weights``, ``knn_selected``, ``gru``, ``srgnn`` (frozen configs),
-    ``fallback_top_n``, ``max_groups``, ``max_len``, ``seed``, ``width``, ``root`` and optionally ``model_dir``
-    (folder with ``gru4rec/model.pt`` and ``srgnn/model.pt``, default ``root/models``).
-    ``neural``: ``"load"`` (saved models of notebooks 07/08, vocabulary must equal theirs),
-    ``"train"`` (retrain with the selected epochs on ``fit_events``; needs ``fit_samples`` =
-    (queries, targets) of the fitting split for SR-GNN), ``"reuse"`` (``neural_models`` from an
-    earlier call with the same vocabulary) or ``"skip"``.
+    ``cfg``: ``popularity``, ``knn_selected`` (frozen configs), ``fallback_top_n``,
+    ``max_groups``, ``max_len``, ``seed``, ``width``, ``root`` and optionally
+    ``models`` (names to score, default every name of ``NON_NEURAL`` + GRU variants),
+    ``gru_variants`` (``{name: config}`` of GRU4Rec models, default ``{"gru4rec": cfg["gru"]}``) and
+    ``model_dir`` (folder with ``<name>/model.pt``, default ``root/models``).
+    ``neural``: ``"load"`` (saved models, vocabulary must equal theirs), ``"train"`` (retrain with the selected
+    epochs on ``fit_events``),
+    ``"reuse"`` (``neural_models`` from an earlier call with the same vocabulary) or ``"skip"``.
     Returns ``(results, models)``; ``results[name] = {"report", "per_query", "fit_seconds", "query_seconds"}``,
-    plus ``"lists"`` (raw candidate items, scores) for the models named in ``keep_lists``.
+    plus ``"topk"`` = (Top-K item matrix, is_fallback matrix) for the names in ``keep_topk``.
     """
     import torch
 
     from rr import gru as G
-    from rr import srgnn as S
     from rr.candidates import CandidateFilter
     from rr.evaluation import fit_neighbour_model, recommend_neighbour, run
-    from rr.models import popularity, repeat_last, spop
+    from rr.models import popularity, repeat_last
     from rr.samples import build_vocab, prefix_events
 
     if fit_events["timestamp"].max() >= eval_q["query_time_ms"].min():
         raise ValueError("Dữ liệu fit phải nằm trước mọi query đánh giá.")
+    gru_variants = cfg.get("gru_variants") or ({"gru4rec": cfg["gru"]} if "gru" in cfg else {})
+    wanted = list(cfg.get("models") or NON_NEURAL + list(gru_variants))
+    unknown = set(wanted) - set(NON_NEURAL) - set(gru_variants)
+    if unknown:
+        raise ValueError(f"Mô hình không biết: {sorted(unknown)}")
     width, seed = cfg["width"], cfg["seed"]
-    model_dir = cfg.get("model_dir", cfg["root"] / "models")
+    model_dir = cfg.get("model_dir") or cfg["root"] / "models"
     qids, qtimes = eval_q["query_id"].to_numpy(), eval_q["query_time_ms"].to_numpy()
     vocab = build_vocab(fit_events)
     flt = CandidateFilter.from_frames(vocab, catalog, history, known_at_column)
@@ -222,29 +225,30 @@ def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd
         return model
 
     empty = np.empty((len(eval_q), 0), dtype=np.int64)
-    lists["popularity"], fit_s["popularity"], query_s["popularity"] = (empty, None), 0.0, 0.0
-    timed("spop", lambda: None, lambda m: spop(prefix_full, qids, cfg["spop_weights"], fb_items, fb_scores, width=50))
-    timed("repeat_last", lambda: None, lambda m: repeat_last(prefix_full, qids, width=50))
-    sel = cfg["knn_selected"]
-    for fam in ["itemknn", "sknn", "vsknn", "stan", "vstan", "sr"]:
+    if "popularity" in wanted:
+        lists["popularity"], fit_s["popularity"], query_s["popularity"] = (empty, None), 0.0, 0.0
+    if "repeat_last" in wanted:
+        timed("repeat_last", lambda: None, lambda m: repeat_last(prefix_full, qids, width=50))
+    sel = cfg.get("knn_selected", {})
+    for fam in [f for f in ["itemknn", "sknn", "stan", "vstan"] if f in wanted]:
         timed(fam, lambda fam=fam: fit_neighbour_model(fam, sel, fit_events),
               lambda m, fam=fam: recommend_neighbour(m, fam, sel, prefix, qids, qtimes, width))
 
     models = dict(neural_models or {})
-    if neural != "skip":
+    neural_wanted = [n for n in wanted if n in gru_variants]
+    if neural != "skip" and neural_wanted:
         n_items = int(vocab["item_idx"].max()) + 1
-        if neural in {"load", "reuse"}:
-            expected = cfg["gru"]["n_items"] if neural == "load" else models["n_items"]
-            if n_items != expected:
-                raise ValueError("Vocabulary khác vocabulary của mô hình đã lưu.")
-        gcfg, scfg = cfg["gru"], cfg["srgnn"]
+        if neural == "reuse" and n_items != models["n_items"]:
+            raise ValueError("Vocabulary khác vocabulary của mô hình dùng lại.")
 
-        def fit_gru():
+        def fit_gru(name, gcfg):
             if neural == "reuse":
-                return models["gru4rec"]
-            m = G.build_from_config(gcfg, n_items=n_items)
+                return models[name]
             if neural == "load":
-                m.load_state_dict(torch.load(model_dir / "gru4rec/model.pt"))
+                if n_items != gcfg["n_items"]:
+                    raise ValueError(f"{name}: vocabulary khác vocabulary của mô hình đã lưu.")
+                m = G.build_from_config(gcfg, n_items=n_items)
+                m.load_state_dict(torch.load(model_dir / name / "model.pt"))
                 return m
             torch.manual_seed(seed)
             m = G.build_from_config(gcfg, n_items=n_items)
@@ -254,40 +258,21 @@ def score_models(fit_events: pd.DataFrame, eval_events: pd.DataFrame, eval_q: pd
                   sample_alpha=gcfg["sample_alpha"])
             return m
 
-        models["gru4rec"] = timed("gru4rec", fit_gru, lambda m: G.topn_items(
-            m, G.query_states(m, G.GroupData(eval_events, vocab), eval_q), G.idx_to_itemid(vocab), width))
+        for name, gcfg in gru_variants.items():
+            if name in wanted:
+                models[name] = timed(name, lambda name=name, gcfg=gcfg: fit_gru(name, gcfg), lambda m: G.topn_items(
+                    m, G.query_states(m, G.GroupData(eval_events, vocab), eval_q), G.idx_to_itemid(vocab), width))
 
-        def fit_srgnn():
-            if neural == "reuse":
-                return models["srgnn"]
-            torch.manual_seed(seed)
-            m = S.SRGNN(n_items, dim=scfg["dim"], steps=scfg["steps"], dropout=scfg["dropout"])
-            if neural == "load":
-                m.load_state_dict(torch.load(model_dir / "srgnn/model.pt"))
-                return m
-            fq, ft = fit_samples
-            graphs = S.GraphData(prefix_events(fq, fit_events, ("itemid", "event"), max_groups=cfg["max_groups"]),
-                                 fq["query_id"].to_numpy(), vocab)
-            ptr, val = S.target_csr(ft, fq["query_id"].to_numpy(), vocab)
-            if (np.diff(ptr) == 0).any():
-                raise ValueError("Có query fit không có target trong vocabulary fit.")
-            neg, lq = S.negative_distribution(val, n_items, scfg["sample_alpha"])
-            S.fit(m, graphs, ptr, val, neg, lq, scfg["epochs"], lr=scfg["lr"], batch_size=scfg["batch_size"],
-                  n_neg=scfg["n_neg"], seed=seed)
-            return m
-
-        models["srgnn"] = timed("srgnn", fit_srgnn, lambda m: G.topn_items(
-            m, S.session_vectors(m, S.GraphData(prefix, qids, vocab)), G.idx_to_itemid(vocab), width))
         models["n_items"] = n_items
 
     results = {}
     for name, (items, scores) in lists.items():
         if name == "popularity":
-            rep, pq, _, _ = run(empty, None, eval_q, eval_t, flt, pop_items, pop_scores)
+            rep, pq, topk, is_fb = run(empty, None, eval_q, eval_t, flt, pop_items, pop_scores)
         else:
-            rep, pq, _, _ = run(items, scores, eval_q, eval_t, flt, fb_items, fb_scores)
+            rep, pq, topk, is_fb = run(items, scores, eval_q, eval_t, flt, fb_items, fb_scores)
         results[name] = {"report": rep, "per_query": pq, "fit_seconds": round(fit_s[name] or 0.0, 1),
                          "query_seconds": round(query_s[name], 1)}
-        if name in keep_lists:
-            results[name]["lists"] = (items, scores)
+        if name in keep_topk:
+            results[name]["topk"] = (topk, is_fb)
     return results, models

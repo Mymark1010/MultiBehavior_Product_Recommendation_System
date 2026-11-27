@@ -10,6 +10,5 @@ nbstripout
 numpy==2.5.5
 scipy==1.18.1
 torch==2.15.0
-lightgbm==4.7.0
 narwhals==2.29.0
 pytest==9.2.0
