@@ -1,28 +1,10 @@
 # Hiện trạng project và ghi chú dữ liệu chi tiết
 
-Tài liệu này giữ phần mô tả dài trước đây nằm trong README: đặc điểm dữ liệu, phạm vi, giao thức, kết quả khảo sát và trạng thái từng bước. README chính chỉ giữ hướng dẫn chạy nhanh.
+Tài liệu này bổ sung cho [README](../README.md): đặc điểm dữ liệu, phạm vi, giao thức và kết quả khảo sát dữ liệu. Danh sách notebook và cách chạy nằm ở README; kết quả từng bước nằm ở [`reports/`](../reports/README.md).
 
-Nguồn: [báo cáo tổng quan (Word)](Bao_cao_tong_quan_RetailRocket.docx), [slide đề xuất đề tài](BAO_CAO_DE_XUAT_DE_TAI_HUST.pptx), [giải thích phương pháp GRU4Rec](GIAI_THICH_PHUONG_PHAP_VA_HOI_DAP_GRU4REC.md), đối chiếu với các report trong `reports/`.
+Nguồn: các report trong `reports/`. Slide báo cáo tiến độ: [BAO_CAO_TIEN_DO_PROJECT3_HUST_27_11.pptx](BAO_CAO_TIEN_DO_PROJECT3_HUST_27_11.pptx).
 
-Các tài liệu trước đây được README nhắc tới nhưng không còn trong repo: hướng dẫn tiền xử lý dữ liệu, thuyết minh chi tiết phương pháp (md/docx) và tài liệu pipeline hoàn thành project **(chưa có)**. Nội dung cốt lõi của chúng đã được tóm tắt trong tài liệu này, `configs/protocol.json` và `TASKS_HOAN_THIEN.md`.
-
-## 1. Bảng hiện trạng
-
-| Thành phần | Vai trò | Trạng thái |
-| --- | --- | --- |
-| `data/raw/` | Events, hai phần thuộc tính và cây danh mục | Đủ bốn CSV (tải từ Kaggle, không commit) |
-| Notebook 01 | Kiểm tra schema events, bỏ trùng, chuyển UTC | Chạy lại từ kernel mới thành công |
-| Notebook 02 | Tạo phiên, nhóm timestamp, chia tập | Chạy lại từ kernel mới thành công |
-| Notebook `kiem_tra_ket_qua_xu_ly` | Đối chiếu độc lập raw → clean → phiên/nhóm → từng tệp split | 36/36 kiểm tra PASS |
-| Notebook 03 | Lịch sử thuộc tính, cây danh mục, catalog | Xem `reports/metadata/metrics.json` |
-| Notebook 04 | Vocabulary, metadata tại t, bộ mẫu prefix–target | Xem `reports/samples/metrics.json` |
-| Notebook 05–07 | Popularity, Repeat-last, ItemKNN, Session-KNN, GRU4Rec trên validation | Xem `reports/eval/` |
-| Notebook 08 | Thực nghiệm cuối trên test (một lần) | Xem `reports/final/` |
-| Notebook 09 | Demo Top-K theo phiên | Tải artifact đã lưu |
-| Notebook 12 | Ablation dữ liệu (phân tích phụ, không đổi giao thức): visitor bất thường, gộp nhóm lặp liên tiếp, ngưỡng phiên 60 phút | Xem `reports/data_ablation/BAO_CAO_ABLATION_DU_LIEU.md` |
-| Notebook 13–14 | Biến thể phụ phiên 60 phút: tune lại trên validation 60 phút, chạy test một lần (ngoại lệ đã được duyệt). Kết quả gần như trùng 30 phút, reranker Δ −0,0002 → giữ 30 phút | Xem `reports/session60/test/BAO_CAO_PHIEN_60_PHUT.md` |
-
-## 2. Dữ liệu sử dụng
+## 1. Dữ liệu sử dụng
 
 **RetailRocket** là bộ log thương mại điện tử công bố trên Kaggle, có dấu thời gian từ **03/05/2015 đến 18/09/2015 (UTC)**. Log gồm **1.407.580 visitor** và **235.061 item** với mã định danh ẩn danh.
 
@@ -48,7 +30,7 @@ Sau khi loại **460 dòng trùng tuyệt đối**, còn **2.755.641 sự kiện
 - Thuộc tính thay đổi theo thời gian và có thể thiếu. Chỉ dùng thông tin đã biết tại thời điểm gợi ý.
 - Không có log hiển thị, do đó không thể coi sản phẩm chưa được tương tác là nhãn âm thật.
 
-## 3. Định hướng và phạm vi
+## 2. Định hướng và phạm vi
 
 Ba câu hỏi nghiên cứu:
 
@@ -59,24 +41,25 @@ Ba câu hỏi nghiên cứu:
 | Phương pháp | Cách tiếp cận | Vai trò |
 | --- | --- | --- |
 | Popularity | Xếp hạng theo số tương tác trong train; trọng số đều và trọng số theo hành vi | Mốc đối chứng và nguồn gợi ý dự phòng |
-| Repeat-last | Gợi ý lại item trong prefix theo độ gần đây | Đo mức điểm của gợi ý lặp (quyết định D1) |
+| Repeat-last | Gợi ý lại item trong prefix theo độ gần đây tuyệt đối (`distance` nhỏ nhất, bỏ qua tần suất cũ) | Đo mức điểm của gợi ý lặp (quyết định D1) |
 | ItemKNN đa hành vi | Cosine giữa item từ ma trận phiên × item; gộp điểm từ các item trong prefix | Tương đồng sản phẩm và trọng số hành vi |
 | Session-KNN | Tìm các phiên train giống prefix rồi tổng hợp điểm item | Đối chứng theo ngữ cảnh phiên |
-| GRU4Rec | Chuỗi nhóm timestamp, mean embedding item + embedding hành vi mỗi nhóm; sampled softmax CE | Mô hình chính |
+| GRU4Rec gốc | Chuỗi nhóm timestamp, chỉ mean embedding item mỗi nhóm; siêu tham số bản chính thức (bpr-max, hidden 224, batch 80) | Mô hình chính, đối chứng đơn hành vi |
+| GRU4Rec đa hành vi | Như GRU4Rec gốc, cộng thêm mean embedding hành vi (xem / thêm giỏ / mua) của nhóm | Mô hình chính, đo lợi ích của thông tin hành vi |
 
-Phạm vi chính là **gợi ý bước tương tác kế tiếp theo phiên**. Đề tài chưa bao gồm A/B test, đo tác động doanh thu hoặc triển khai hệ thống sản xuất.
+Phạm vi hiện tại (protocol v1.3.2, 26/11/2026) là **gợi ý bước tương tác kế tiếp theo phiên**, với hai ngưỡng phiên 30 và 60 phút. Trọng tâm là so sánh GRU4Rec gốc với GRU4Rec đa hành vi; Popularity, Repeat-last và VSTAN là mốc tham chiếu. SR-GNN từng là neural đối chứng nhưng đã được gỡ khỏi phạm vi ở v1.3.1; S-POP, SR và V-SKNN được gỡ ở v1.3.2 (người dùng quyết định ngày 26/11/2026). Mọi chỉ số tính tại K = 20. Đề tài chưa bao gồm A/B test, đo tác động doanh thu hoặc triển khai hệ thống sản xuất.
 
-## 4. Giao thức (tóm tắt — bản chính thức: `configs/protocol.json`)
+## 3. Giao thức (tóm tắt — bản chính thức: `configs/protocol.json`)
 
-- Phiên mới khi đổi visitor hoặc nghỉ **> 30 phút**; đúng 30 phút vẫn cùng phiên.
+- Phiên mới khi đổi visitor hoặc nghỉ **> 30 phút**; đúng 30 phút vẫn cùng phiên. Notebook 09 dựng thêm bộ dữ liệu với ngưỡng **60 phút** theo cùng luật và cùng mốc chia để so sánh.
 - Nhóm = `(session_id, timestamp)`; không tạo thứ tự giả giữa sự kiện đồng thời.
 - Mốc chia = phân vị 0,8 / 0,9 của timestamp events sạch; chia nguyên phiên; phiên cắt qua mốc → `boundary_drop`, không dùng làm lịch sử, ứng viên hay nhãn.
 - Mẫu: prefix `P = (g₁, …, gₜ)`, target `G` = tập item phân biệt trong `gₜ₊₁`, mọi loại hành vi. Ví dụ `g₁ = xem A`, `g₂ = xem B`, `g₃ = thêm giỏ B + xem C` cùng timestamp → tại cuối `g₂` target là `{B, C}`.
-- Ứng viên tại `t`: `known_at_ms ≤ t`, `available` gần nhất `≠ 0` (unknown vẫn giữ), có trong vocabulary train. Áp dụng cả cho fallback Popularity.
+- Ứng viên tại `t`: có trong vocabulary train và `known_at_ms ≤ t`. Áp dụng cả cho fallback Popularity. Luật `available` gần nhất `≠ 0` chỉ dùng cho báo cáo phụ (protocol v1.2.0+: 17,62% target validation có `available = 0` tại `t`).
 - Target giữ ID gốc, kể cả ngoài vocabulary; vẫn tính vào mẫu số (0 điểm).
 - Chỉ học từ train; chọn cấu hình trên validation; test chạy một lần với cấu hình đã đóng băng.
 
-## 5. Kết quả khảo sát dữ liệu
+## 4. Kết quả khảo sát dữ liệu
 
 | Hạng mục | Kết quả kiểm tra | Xử lý |
 | --- | --- | --- |
@@ -92,9 +75,9 @@ Phạm vi chính là **gợi ý bước tương tác kế tiếp theo phiên**. 
 
 Notebook 02 tạo **1.761.675 phiên**, **2.753.015 nhóm timestamp**, tách **47 phiên / 328 sự kiện** qua biên. Ba tập train / validation / test có **2.204.470 / 275.359 / 275.484 sự kiện** và **806.025 / 92.566 / 92.468 query**.
 
-Đặc điểm tín hiệu học (`reports/gru_readiness/`): 41,01% lượt target train đã có trong prefix; 125 phiên train có hơn 100 nhóm; tỷ lệ target ngoài vocabulary train là 5,31% (validation) và 9,33% (test).
+Đặc điểm tín hiệu học (`reports/02_gru_readiness/`): 41,01% lượt target train đã có trong prefix; 125 phiên train có hơn 100 nhóm; tỷ lệ target ngoài vocabulary train là 5,31% (validation) và 9,33% (test).
 
-## 6. Lưu trữ và xác nhận dữ liệu
+## 5. Lưu trữ và xác nhận dữ liệu
 
 Dùng **CSV raw + Parquet đã xử lý + JSON cấu hình/báo cáo**. Chưa cần cơ sở dữ liệu; nếu cần truy vấn SQL, DuckDB đọc trực tiếp Parquet.
 
@@ -108,3 +91,21 @@ Dùng **CSV raw + Parquet đã xử lý + JSON cấu hình/báo cáo**. Chưa c�
 | Tệp xuất | Nội dung từng partition khớp bảng tổng; tổng bốn tệp bằng events sạch |
 
 Chạy lại notebook kiểm tra sau khi thay đổi raw, thuật toán hoặc đầu ra.
+
+## 6. Kết quả thực nghiệm (27/11/2026)
+
+Chi tiết: [`reports/10_final/BAO_CAO_KET_QUA.md`](../reports/10_final/BAO_CAO_KET_QUA.md) (test), `reports/09_validation_30_60/` (validation), `reports/12_data_ablation/`, `reports/13_gru4rec_official/`. Mọi report có `status: PASS`.
+
+| Mô hình | NDCG@20 validation (30 phút, train) | NDCG@20 test (30 phút, refit) | NDCG@20 test (60 phút, refit) |
+| --- | --- | --- | --- |
+| Popularity | 0,0047 | 0,0041 | 0,0041 |
+| Repeat-last | 0,3578 | 0,3337 | 0,3387 |
+| VSTAN | 0,3747 | 0,3528 | 0,3559 |
+| GRU4Rec gốc (chỉ item) | 0,3951 | 0,3713 | 0,3742 |
+| GRU4Rec đa hành vi | 0,3950 | 0,3721 | 0,3752 |
+
+- Thứ hạng GRU4Rec > VSTAN > Repeat-last > Popularity giữ nguyên ở validation và test, cả hai ngưỡng phiên.
+- Hiệu ứng hành vi (đa hành vi − gốc, paired bootstrap): validation chứa 0; test bản refit khoảng +0,001 (CI 95% không chứa 0), bản `train_only` 60 phút lại âm (−0,0009). Kết luận: lợi ích rất nhỏ và chưa ổn định.
+- Ngưỡng 60 phút nhỉnh hơn 30 phút khoảng +0,001 NDCG@20 trên cùng bộ query test.
+- Notebook 13: GRU4Rec bản chính thức (10 epoch) đạt 0,3888 trên validation, thấp hơn bản tự cài 0,0063 (CI 95% [−0,0075; −0,0051]); bản chính thức tốt hơn ở target mới, kém ở target lặp.
+- Lần chạy test v1.3.2 đầu tiên bị ngắt (26/11, không phải lỗi code); người dùng duyệt chạy lại cùng cấu hình đóng băng ngày 27/11. Lần chạy lại trùng khớp các số đã in trước khi ngắt. `configs/protocol.json` không ghi sự kiện này để giữ nguyên mã băm mà notebook 10–13 đã kiểm tra.

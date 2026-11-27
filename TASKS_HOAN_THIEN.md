@@ -1,6 +1,6 @@
 # Danh sách việc cần hoàn thiện — dành cho Claude Code
 
-Trạng thái rà soát: commit `3ac0327` (22/11/2026); cập nhật 23/11/2026 theo protocol v1.2.0 (bộ phương pháp theo tài liệu tổng quan phương pháp gợi ý theo phiên trên RetailRocket). Đọc `CLAUDE.md` trước.
+Trạng thái rà soát: commit `3ac0327` (22/11/2026); cập nhật 23/11/2026 theo protocol v1.2.0 (bộ phương pháp theo tài liệu tổng quan phương pháp gợi ý theo phiên trên RetailRocket); 24/11/2026 thu hẹp phạm vi theo protocol v1.3.0 (chỉ bài toán tương tác kế tiếp, GRU4Rec gốc so với đa hành vi, phiên 30 và 60 phút); 26/11/2026 protocol v1.3.1: tạm bỏ SR-GNN (xóa notebook 08, `src/rr/srgnn.py`, test, mô hình, report); cùng ngày v1.3.2: bỏ S-POP, SR, V-SKNN và chỉ giữ chỉ số tại K = 20. Đọc `CLAUDE.md` trước.
 Làm theo thứ tự **P0 → P1 → P2**. Mỗi task có *Việc cần làm* và *Tiêu chí hoàn thành*. Chỉ đánh dấu xong khi mọi tiêu chí đạt.
 Mục **[CẦN XÁC NHẬN]** phải hỏi người dùng trước khi làm.
 
@@ -11,93 +11,18 @@ Sau mỗi task, cập nhật ô `[ ]` thành `[x]` trong file này và commit ri
 
 ---
 
-## P0 — Sửa repo để người khác clone và chạy được
+## P0 — Sửa repo để người khác clone và chạy được (đã xong)
 
-### [x] T01. Bổ sung hoặc gỡ 5 file README đang trỏ tới nhưng không có trong repo
-
-File thiếu:
-- `docs/HUONG_DAN_TIEN_XU_LY_DU_LIEU.md`
-- `docs/PHUONG_PHAP_DE_XUAT_CHI_TIET.md`
-- `docs/PHUONG_PHAP_DE_XUAT_CHI_TIET.docx`
-- `docs/PIPELINE_HOAN_THANH_PROJECT.md`
-- `notebooks/kiem_tra_ket_qua_xu_ly.ipynb` — sinh ra `reports/data_validation/metrics.json` (36 check, PASS) đã commit
-
-Việc cần làm:
-1. Chạy `git status --ignored` và tìm 5 file trên ở máy local. Nếu có thì `git add` và commit.
-2. Nếu không có file `kiem_tra_ket_qua_xu_ly.ipynb`: viết lại notebook này. Danh sách check phải khớp đúng các khóa `check` trong `reports/data_validation/metrics.json`: file_versions, notebook_lineage, raw_to_clean_exact_values, event_count_balance, clean_schema, purchase_ids, valid_events, clean_uniqueness, utc, clean_to_sessionized_exact_values, session_no_excess_splits, session_required_splits, one_visitor_per_session, session_summary, session_query_count, one_group_per_session_timestamp, group_summary, group_one_session, group_one_timestamp, group_order, event_group_links, time_cutoffs, boundary_drop, train/validation/test_time_range, event_split_links, group_split_links, session_not_shared, train/validation/test/boundary_drop_file_exact_values, partition_balance, strict_time_order, inputs_unchanged. Notebook chỉ đọc, không ghi đè dữ liệu.
-3. Với các file docs không khôi phục được: xóa link khỏi README, hoặc ghi rõ "(chưa có)".
-
-Tiêu chí hoàn thành:
-- Lệnh kiểm tra link cục bộ trong README.md, docs/*.md và reports/**/*.md không còn link hỏng.
-- Notebook kiểm tra chạy bằng `nbconvert --execute` ra `status: PASS`.
-
-### [x] T02. Thêm `requirements.txt`
-
-Việc cần làm: tạo `requirements.txt` theo phiên bản đã dùng thật trong report:
-```
-pandas==3.0.3
-pyarrow==25.0.1
-ipykernel
-jupyter
-nbstripout
-```
-Ghi chú Python 3.14 ở đầu file. Thêm `numpy`, `scipy` (cho KNN) và `torch` (cho GRU4Rec) khi làm tới P2. Không thêm trước.
-
-Tiêu chí hoàn thành: `python -m venv .venv && pip install -r requirements.txt` rồi chạy notebook 01 → 02 thành công trên môi trường mới.
-
-### [x] T03. Bỏ kernelspec gắn cứng
-
-Hiện cả hai notebook dùng `"name": "retailrocket-project"`. Máy khác không có kernel tên này sẽ báo lỗi.
-
-Việc cần làm: sửa `metadata.kernelspec` của mọi notebook thành
-`{"name": "python3", "display_name": "Python 3", "language": "python"}`. Sửa đoạn README nói về kernel "RetailRocket (Python 3.14)" thành hướng dẫn chọn kernel của `.venv`.
-
-Tiêu chí hoàn thành: `grep -r "retailrocket-project" notebooks/` không còn kết quả.
-
-### [x] T04. Cố định ký tự xuống dòng để mã băm giống nhau trên mọi máy
-
-Bằng chứng: `data/processed/split_config.json` trong repo (LF) có SHA-256 `6007b486…`, còn report ghi `44c889b4…`, tức mã băm của bản CRLF tạo trên Windows. Nguyên nhân: `Path.write_text()` trên Windows tự đổi `\n` thành `\r\n`.
-
-Việc cần làm:
-1. Tạo `.gitattributes`:
-   ```
-   * text=auto eol=lf
-   *.docx binary
-   *.pptx binary
-   *.parquet binary
-   ```
-2. Trong `write_json()` của notebook 01 và 02, đổi thành `temporary.write_text(..., encoding="utf-8", newline="\n")`.
-3. **Việc người dùng làm trên máy có dữ liệu:** chạy lại notebook 01 → 02 (→ notebook kiểm tra) để cập nhật report. Mã băm các file Parquet phải giữ nguyên. Chỉ mã băm `split_config.json` được phép thay đổi.
-
-Tiêu chí hoàn thành: `sha256sum data/processed/split_config.json` khớp `reports/session_split/metrics.json → split_config.sha256` trên một bản clone mới.
-
-### [x] T05. Kiểm tra Parquet theo nội dung, không chỉ theo byte
-
-Mã băm file Parquet thay đổi khi pyarrow/pandas khác phiên bản, kể cả khi dữ liệu giống hệt. Người khác chạy lại sẽ thấy "lệch" dù không có lỗi.
-
-Việc cần làm: trong `save_verified()` (notebook 02) và phần tương ứng của notebook 01, ghi thêm `content_sha256` vào report. Tính trên bảng đã sắp theo `event_id` (hoặc khóa chính của bảng), dùng `pd.util.hash_pandas_object(frame, index=False)` rồi băm SHA-256 mảng kết quả. Giữ `sha256` theo byte để truy vết phiên bản. Khi đối chiếu giữa các máy thì dùng `content_sha256`.
-
-Tiêu chí hoàn thành: report có cả hai trường; README giải thích ngắn gọn sự khác nhau giữa hai trường.
-
-### [x] T06. Gỡ đường dẫn cá nhân khỏi repo
-
-Hiện có 6 file chứa đường dẫn tuyệt đối của máy cá nhân (thư mục người dùng Windows và thư mục project trên ổ D): README.md, 2 notebook, và 3 file `reports/*/metrics.json`.
-
-Việc cần làm:
-1. Trong notebook: in `ROOT.name` và đường dẫn tương đối (`SOURCE.relative_to(ROOT)`) thay cho đường dẫn tuyệt đối. Trong report: bỏ `python_executable`, giữ `python_version`.
-2. Chạy `nbstripout --install` và thêm `*.ipynb filter=nbstripout` vào `.gitattributes`, để output notebook không vào git. Bằng chứng kết quả nằm trong `reports/`.
-3. Xóa đoạn đường dẫn máy cá nhân trong README.
-
-Tiêu chí hoàn thành: tìm tên người dùng Windows và tên thư mục ổ D của máy cá nhân bằng `grep -rI` (trừ `.git/`, `.venv/`, `data/`) không còn kết quả.
-
-### [x] T07. Viết lại phần mở đầu README
-
-Việc cần làm:
-1. Thêm mục **"Chạy nhanh"** ở đầu README: clone → tạo venv → `pip install -r requirements.txt` → tải dữ liệu → chạy notebook 01, 02, kiểm tra.
-2. Thêm hướng dẫn tải dữ liệu: Kaggle dataset `retailrocket/ecommerce-dataset`, lệnh `kaggle datasets download -d retailrocket/ecommerce-dataset -p data/raw --unzip`, và danh sách 4 file cần có kèm số dòng, SHA-256 của `events.csv` (`3745aa83…`, lấy từ `reports/data_validation/metrics.json`).
-3. Chuyển bảng hiện trạng và ghi chú dài sang `docs/HIEN_TRANG.md`. README chính nên dưới khoảng 150 dòng.
-
-Tiêu chí hoàn thành: một người chỉ đọc README có thể chạy lại 01 → 02 mà không cần hỏi thêm.
+| Task | Kết quả |
+| --- | --- |
+| [x] T01 | Link hỏng trong README đã gỡ; notebook `kiem_tra_ket_qua_xu_ly` ghi `reports/02_data_validation/metrics.json` (36 kiểm tra, PASS) |
+| [x] T02 | `requirements.txt` ghi đúng phiên bản đã dùng (Python 3.14) |
+| [x] T03 | Mọi notebook dùng kernelspec `python3` |
+| [x] T04 | `.gitattributes` ép LF; JSON ghi với `newline="
+"` nên mã băm giống nhau trên mọi hệ điều hành |
+| [x] T05 | Report Parquet có cả `sha256` (byte) và `content_sha256` (nội dung) |
+| [x] T06 | Không còn đường dẫn máy cá nhân trong repo; `nbstripout` bỏ output notebook khỏi git |
+| [x] T07 | README có mục "Chạy nhanh" và hướng dẫn tải dữ liệu; ghi chú dài chuyển sang `docs/HIEN_TRANG.md` |
 
 ---
 
@@ -107,7 +32,7 @@ Ghi mọi quyết định vào `configs/protocol.json` (tạo mới), có `versi
 
 ### [x] D1. [CẦN XÁC NHẬN] Xử lý target trùng item đã có trong prefix
 
-Số liệu (`reports/gru_readiness`): 41,01% lượt item trong target train đã có trong prefix. 94.157 phiên train đủ mẫu chỉ có một item phân biệt. Gợi ý lại item cuối có thể đạt điểm cao một cách giả tạo.
+Số liệu (`reports/02_gru_readiness`): 41,01% lượt item trong target train đã có trong prefix. 94.157 phiên train đủ mẫu chỉ có một item phân biệt. Gợi ý lại item cuối có thể đạt điểm cao một cách giả tạo.
 
 Đề xuất mặc định:
 - Giữ nguyên dữ liệu. Thêm cờ `target_is_repeat` cho từng (query, item).
@@ -152,7 +77,7 @@ Số liệu kỳ vọng bên dưới lấy từ README và report hiện có. K�
   - `data/processed/item_property_history.parquet`: `itemid int64, timestamp int64, property {categoryid, available}, value string, source_part int8`. Sắp theo `itemid, timestamp`.
   - `data/processed/category_tree.parquet`: `categoryid, parentid (nullable), is_root`.
   - `data/processed/item_catalog.parquet`: `itemid, first_event_ms, first_property_ms, known_at_ms = min(hai cột trên), has_metadata bool`.
-  - `reports/metadata/metrics.json` với SHA-256 của cả 3 CSV.
+  - `reports/03_metadata/metrics.json` với SHA-256 của cả 3 CSV.
 - Tiêu chí (khớp khảo sát cũ): tổng 20.275.902 dòng thuộc tính; không có dòng trùng tuyệt đối xuyên hai file; 2.291.853 cập nhật categoryid/available; không có xung đột cùng (item, property, timestamp); 49.815/235.061 item trong log không có metadata; 1.669 danh mục, 25 gốc, không có chu trình; 30 mã danh mục ngoài cây thuộc 137 item, không item nào trong số đó có trong events; 137.193 sự kiện xảy ra trước bản thuộc tính đầu tiên.
 - `known_at_ms` chỉ tính từ sự kiện thuộc `train` khi dùng cho lọc ứng viên ở giai đoạn train. Ghi rõ quy tắc vào `configs/protocol.json`.
 
@@ -179,16 +104,16 @@ Số liệu kỳ vọng bên dưới lấy từ README và report hiện có. K�
   - `recall@K = |TopK ∩ G| / |G|`
   - `mrr@K = 1 / rank của hit đầu tiên, 0 nếu không có hit`
   - `ndcg@K = DCG / IDCG`, với `DCG = Σ_{hit tại rank r} 1/log2(r+1)` và `IDCG = Σ_{r=1}^{min(|G|,K)} 1/log2(r+1)`
-  - Trung bình trên mọi query có `G` không rỗng, kể cả query có target ngoài vocab (tính 0 điểm). K ∈ {10, 20}. Chỉ số chính: NDCG@20.
+  - Trung bình trên mọi query có `G` không rỗng, kể cả query có target ngoài vocab (tính 0 điểm). K = 20 (K = 10 bỏ ở v1.3.2). Chỉ số chính: NDCG@20.
 - Test bằng ví dụ tính tay (ít nhất 6 ca: không hit, hit rank 1, hit rank K, nhiều target, trùng item trong TopK bị từ chối, K > số ứng viên).
-- Lọc ứng viên tại `t`: `known_at_ms <= t`, available gần nhất `!= 0` (unknown vẫn giữ), có trong vocab. Áp dụng cho mọi mô hình và cho fallback.
+- Lọc ứng viên tại `t`: `known_at_ms <= t`, có trong vocab; áp dụng cho mọi mô hình và cho fallback. Luật `available != 0` chỉ còn là báo cáo phụ (protocol v1.2.0).
 - Popularity: (a) đếm đều; (b) có trọng số hành vi `w_view=1, w_cart, w_buy`, tìm lưới trên validation (ví dụ {1, 2, 5, 10}).
 - Baseline Repeat-last theo D1.
-- Đầu ra: `reports/eval/popularity_validation.json`, `reports/eval/repeat_last_validation.json`. Có bảng tách theo target mới/lặp và theo độ dài prefix.
+- Đầu ra: `reports/05_08_validation/popularity_validation.json`, `reports/05_08_validation/repeat_last_validation.json`. Có bảng tách theo target mới/lặp và theo độ dài prefix.
 
-### [x] T11. Notebook 06 — họ kNN (SKNN, V-SKNN, STAN, VSTAN), SR và ItemKNN
+### [x] T11. Notebook 06 — họ kNN (SKNN, STAN, VSTAN) và ItemKNN
 
-Cập nhật v1.2.0: thêm VSTAN (STAN + IDF) và luật tuần tự SR; S-POP nằm ở notebook 05.
+Cập nhật v1.2.0: thêm VSTAN (STAN + IDF) và luật tuần tự SR; S-POP nằm ở notebook 05. Cập nhật v1.3.2 (26/11/2026): người dùng bỏ S-POP, SR và V-SKNN khỏi notebook 05, 06 và `src/rr`; chuỗi chọn VSTAN (SKNN → STAN → VSTAN) giữ nguyên.
 
 
 - ItemKNN: ma trận phiên × item thưa (scipy.sparse) từ train, giá trị = trọng số hành vi. Cosine item–item, giữ top-M láng giềng mỗi item. Điểm = tổng có trọng số độ gần đây theo các item trong prefix.
@@ -204,59 +129,72 @@ Cập nhật v1.2.0: tự cài theo bộ tính năng bản chính thức (BPR-ma
 - Input mỗi bước = mean embedding các item trong nhóm, cộng embedding hành vi (view/cart/buy), theo README. Reset hidden state giữa các phiên.
 - Loss theo D4. Dropout và hidden size chọn trên validation. Early stopping theo NDCG@20 validation. Seed cố định.
 - Bước đầu: chạy smoke test trên khoảng 1% train để kiểm tra input–target lệch đúng một bước và loss giảm.
-- Lưu `models/gru4rec/{config.json, model.pt}` (không commit file `.pt` lớn) và `reports/eval/gru4rec_validation.json`.
+- Lưu `models/gru4rec/{config.json, model.pt}` (không commit file `.pt` lớn) và `reports/05_08_validation/gru4rec_validation.json`.
 - Ablation cho câu hỏi nghiên cứu 2: xáo trộn thứ tự nhóm trong prefix, hoặc chỉ dùng nhóm cuối.
+- Sửa 25/11/2026: embedding hành vi trước đây khởi tạo theo mặc định N(0, 1), lấn át trung bình embedding item (N(0; 0,05)); nay khởi tạo cùng thang 0,05, có test `test_behavior_embedding_same_scale_as_items`. Notebook 04–07 và 09 đã chạy lại sau khi sửa; kết quả của các mô hình không dùng embedding hành vi trùng tuyệt đối bản cũ.
+- Ghi chú v1.3.2: `reports/05_08_validation/gru4rec_validation.json` sinh ở protocol 1.3.0 nên vẫn có cột @10. Notebook 10 đã đóng băng mã băm file này, nên không chạy lại notebook 07; mọi so sánh chỉ đọc các cột @20.
 
-### [x] T12b. Notebook 08 — SR-GNN (neural đối chứng)
+### [–] T12b. Notebook 08 — SR-GNN (neural đối chứng) — đã gỡ ở v1.3.1
+
+Người dùng quyết định ngày 26/11/2026 bỏ SR-GNN khỏi phạm vi. Notebook 08, `src/rr/srgnn.py`, `tests/test_srgnn.py`, `models/srgnn/`, `models/session60/srgnn/` và `reports/05_08_validation/srgnn_validation.json` đã bị xóa (còn trong lịch sử git). Mô tả cũ giữ lại để tham khảo:
+
 
 - Đồ thị: nút = item trong prefix (≤ 50 nhóm gần nhất), cạnh từ mọi item nhóm g sang mọi item nhóm g+1, không thứ tự trong nhóm, embedding hành vi cộng vào nút.
-- Sampled softmax như GRU4Rec, early stopping theo NDCG@20 validation. Đầu ra `models/srgnn/`, `reports/eval/srgnn_validation.json`.
+- Sampled softmax như GRU4Rec, early stopping theo NDCG@20 validation. Đầu ra `models/srgnn/`, `reports/05_08_validation/srgnn_validation.json`.
 
-### [x] T12c. Notebook 09 — reranker kiểu HySAR (LightGBM)
+### [x] T13. Notebook 10 — thực nghiệm cuối trên test (phạm vi v1.3.2)
 
-- Ứng viên = top-100 kNN tốt nhất ∪ top-100 GRU4Rec ∪ item trong prefix; đặc trưng hành vi, độ phổ biến, danh mục as-of t.
-- Học trên validation (mô hình gốc fit trên train), kiểm định chéo 2 fold theo phiên, báo cáo out-of-fold.
+Phạm vi v1.3.0 (người dùng chốt 24/11/2026): chỉ bài toán tương tác kế tiếp. Người dùng duyệt đọc test thêm một lần cho bộ so sánh mới; các report test trước đó đã bị gỡ khỏi repo. Ngày 26/11/2026 (v1.3.1) lần chạy test đang dở, có SR-GNN, bị dừng và xóa toàn bộ output; test đã bị đọc một phần. Người dùng duyệt chạy lại test một lần với phạm vi mới, sau khi chạy lại notebook 09 và bản diễn tập.
 
-### [ ] T13. Notebook 10 — thực nghiệm cuối trên test
-
-Trạng thái 24/11/2026: đã chạy test một lần (`reports/final/metrics.json`, `reports/final/BAO_CAO_KET_QUA.md`). **Còn lại:** cập nhật Word/slide bằng số liệu thật.
-
-Cập nhật: chạy diễn tập `RR_FINAL_SPLIT=validation` trước; báo cáo thêm bài toán 2 (cart/mua ở nhóm kế tiếp) và paired bootstrap so với Repeat-last.
-
-
-- Đóng băng `configs/protocol.json` và cấu hình tốt nhất của 4 mô hình, ghi mã băm vào report trước khi chạy test.
-- Áp dụng D2. Chạy test **một lần**.
-- Báo cáo: bảng chính (Recall/Hit/MRR/NDCG @10, @20), bảng theo target mới/lặp, theo độ dài prefix, theo độ phổ biến item; thời gian train/query; tỷ lệ fallback; khoảng tin cậy bootstrap 95% theo query cho NDCG@20.
-- Đầu ra: `reports/final/metrics.json` và `reports/final/BAO_CAO_KET_QUA.md`. Cập nhật Word/slide bằng số liệu thật.
+- Đóng băng `configs/protocol.json`, report validation (notebook 05–09) và mô hình của cả hai ngưỡng phiên, ghi mã băm vào `frozen.json` trước khi đọc test.
+- Diễn tập `RR_FINAL_SPLIT=validation` trước. Lần chạy test chỉ được phép khi bản diễn tập có đúng cấu hình đóng băng hiện tại. Test chạy **một lần**.
+- Mô hình: GRU4Rec gốc (`gru4rec_item`), GRU4Rec đa hành vi (`gru4rec`); mốc Popularity, Repeat-last, VSTAN.
+- Tổ hợp chạy: 2 ngưỡng phiên (30/60) × 2 biến thể fit (D2, refit là biến thể chính) × 2 bộ query (`q30`, `q60`).
+- Báo cáo:
+  - HR/MRR/NDCG@20 kèm khoảng tin cậy bootstrap 95%;
+  - hiệu ứng hành vi (đa hành vi − gốc, paired bootstrap);
+  - hiệu ứng ngưỡng phiên trên cùng bộ query (paired bootstrap);
+  - NDCG theo target mới/lặp và theo độ dài prefix;
+  - so với Repeat-last;
+  - thời gian fit.
+- Đầu ra: `reports/10_final/{metrics.json, BAO_CAO_KET_QUA.md}`, Top-K đã lưu cho demo. Slide đã cập nhật số test (27/11/2026, `docs/BAO_CAO_TIEN_DO_PROJECT3_HUST_27_11.pptx`); báo cáo Word cũ đã xóa theo yêu cầu người dùng.
+- Kết quả (27/11/2026, `status: PASS`, mã băm mọi đầu vào khớp `frozen.json`): NDCG@20 bản refit, phiên 30 phút: GRU4Rec đa hành vi 0,3721, GRU4Rec gốc 0,3713, VSTAN 0,3528, Repeat-last 0,3337, Popularity 0,0041. Hiệu ứng hành vi ở bản refit khoảng +0,001 (CI 95% không chứa 0 ở cả hai ngưỡng); ở bản `train_only` phiên 60 phút lại âm (−0,0009).
+- Sự cố 26–27/11/2026: lần chạy test v1.3.2 đầu tiên bị ngắt sau 6/8 tổ hợp (tiến trình nền bị đóng cùng phiên Claude Code, không phải lỗi code), không ghi report; log tiến độ đã in NDCG@20 của 6 tổ hợp đó. Người dùng duyệt chạy lại nguyên notebook 10 test cùng cấu hình đóng băng (không đổi gì). Lần chạy lại cho NDCG@20 trùng khớp 6 tổ hợp đã in, nên việc chạy lại không tạo cơ hội chọn kết quả.
 
 ### [x] T14. Notebook 11 — demo
 
-- Tải artifact đã lưu. Nhận prefix là danh sách (itemid, event, timestamp). Trả về bảng `rank, item_id, score, category_id, is_fallback` như README mục 3.
+- Tải artifact đã lưu. Nhận prefix là danh sách (itemid, event, timestamp). Trả về bảng `rank, item_id, score, category_id, is_fallback` (README, bảng notebook 11).
 - Có 3 ví dụ lấy từ test, kết quả khớp với lần chạy đánh giá cho cùng query.
 - Hướng dẫn chạy từ kernel mới trong README.
 
 ### [x] T15. Notebook 12 — ablation dữ liệu (người dùng duyệt 24/11/2026)
 
-Phân tích phụ sau rà soát dữ liệu; **không đổi giao thức chính**, chỉ đánh giá trên validation, test chỉ chấm lại từ Top-K đã lưu.
+Phân tích phụ sau rà soát dữ liệu; **không đổi giao thức chính**, chỉ đánh giá trên validation, test chỉ chấm lại từ Top-K đã lưu. So sánh ngưỡng phiên 30/60 phút chuyển sang T16.
 
 - A. Visitor bất thường: ngưỡng học từ train (phân vị 99,99% sự kiện và giao dịch theo visitor-ngày UTC); báo cáo metric toàn bộ / bỏ visitor bị gắn cờ / chỉ visitor bị gắn cờ; độ nhạy bỏ top-10 visitor.
 - B. Ablation D1 "gộp nhóm liên tiếp trùng `(item, hành vi)`": 2×2 fit gốc/gộp × đánh giá gốc/gộp.
-- C. Ngưỡng phiên 60 phút: sessionize lại, cùng mốc 0.8/0.9, fit lại mọi mô hình (trừ reranker), 2×2 fit 30/60 × đánh giá 30/60.
-- Tiêu chí: `sessionize(30 phút)` tái tạo đúng notebook 02; mốc so sánh khớp `reports/final_rehearsal` (train_only) tuyệt đối; Top-K test đã lưu khớp `reports/final`; paired bootstrap trên cùng bộ query; `reports/data_ablation/{metrics.json, BAO_CAO_ABLATION_DU_LIEU.md}`.
+- Tiêu chí: mốc so sánh khớp `reports/10_final_rehearsal` (train_only, phiên 30 phút) tuyệt đối; Top-K test đã lưu khớp `reports/10_final`; paired bootstrap trên cùng bộ query; `reports/12_data_ablation/{metrics.json, BAO_CAO_ABLATION_DU_LIEU.md}`.
+- Sau khi notebook 10 chạy lại theo v1.3.1, cần chạy lại notebook 12 để đối chiếu với report mới. Đã chạy lại ngày 27/11/2026 (protocol 1.3.2, `status: PASS`, mốc khớp bản diễn tập).
 
-### [x] T16. Notebook 13–14 — phiên 60 phút: tune lại và chạy test (người dùng duyệt 24/11/2026)
+### [x] T16. Notebook 09 — GRU4Rec gốc và đa hành vi, phiên 30 và 60 phút (người dùng chốt 24/11/2026)
 
-Báo cáo phụ; **kết quả chính thức vẫn là phiên 30 phút** (`reports/final`). Người dùng duyệt một lần đọc test bổ sung cho biến thể 60 phút (ngoại lệ có ghi nhận với quy tắc "test chạy một lần").
+- Thêm biến thể GRU4Rec gốc: cùng kiến trúc và siêu tham số bản chính thức, bỏ embedding hành vi (`use_behavior=False`, có test).
+- Dựng dữ liệu phiên 60 phút bằng `sessionize` (cùng mốc 0.8/0.9). Kiểm tra `sessionize(30 phút)` trùng notebook 02 trên từng sự kiện.
+- Chọn trên validation với cùng thủ tục notebook 05–07:
+  - số epoch GRU4Rec gốc ở 30 và 60 phút;
+  - số epoch GRU4Rec đa hành vi ở 60 phút (ở 30 phút giữ notebook 07, chấm lại phải khớp tuyệt đối);
+  - Popularity và VSTAN (chuỗi sknn → stan → vstan) ở 60 phút.
+- Đầu ra: `data/processed/session60/`, `models/gru4rec_item/`, `models/session60/`, `reports/09_validation_30_60/metrics.json`.
 
-- Notebook 13: dựng dữ liệu 60 phút (cùng mốc 0.8/0.9), mẫu, vocabulary, `known_at`; tune trên validation 60 phút với cùng lưới/thủ tục notebook 05–09 (kNN đủ 51 lần chạy; GRU4Rec và SR-GNN giữ kiến trúc đã chọn, chọn số epoch; reranker CV 2 fold). Đầu ra `data/processed/session60/`, `models/session60/`, `reports/session60/validation.json`.
-- Notebook 14: đóng băng → diễn tập trên validation → test một lần; hai biến thể train_only / train_validation_refit; đánh giá trên query test 30 phút chính thức (so trực tiếp với `reports/final`, paired bootstrap với Top-K đã lưu) và trên query test 60 phút. Đầu ra `reports/session60/test/`.
-- **Kết quả (24/11/2026):**
-  - Trên cùng query test 30 phút, Δ NDCG@20 của 60 phút so với 30 phút:
-    - reranker −0,0002 (refit);
-    - GRU4Rec −0,0001 (refit) và +0,0007 (train_only, không có ý nghĩa);
-    - VSTAN +0,0012;
-    - SR-GNN +0,0043.
-  - Thứ hạng mô hình không đổi → **giữ 30 phút**. Xem `reports/session60/test/BAO_CAO_PHIEN_60_PHUT.md`.
+### [x] T17. Notebook 13 — kiểm chứng GRU4Rec bản chính thức trên validation (người dùng duyệt 26/11/2026)
+
+Theo review báo cáo phương pháp: chạy `hidasib/GRU4Rec_PyTorch_Official` (commit `d1fc311`) trên chính bộ chia của dự án để kiểm chứng GRU4Rec tự cài.
+
+- Code chính thức không commit (license nghiên cứu/giáo dục): notebook tải vào `external/` (gitignore), kiểm tra SHA-256. Cầu nối `src/rr/official_gru.py`, test `tests/test_official_gru.py`.
+- Cấu hình: paramfile `retailrocket_bprmax_shared_best` giữ nguyên, 10 epoch; chấm NDCG@20 validation sau mỗi epoch.
+- Người dùng chốt: sự kiện cùng timestamp xếp theo `event_id` (chỉ cho notebook này). Bản vá duy nhất: `_init_numpy_weights` tính như NumPy 1.
+- Tiêu chí: vòng lặp từng epoch cho trọng số trùng `fit()` gốc; cùng query, bộ lọc, fallback, metric với notebook 07/09; paired bootstrap với GRU4Rec gốc và đa hành vi; không đọc test. Đầu ra `reports/13_gru4rec_official/metrics.json`.
+- Kết quả (27/11/2026, `status: PASS`): bản chính thức đạt NDCG@20 validation 0,3888 sau 10 epoch (tăng đều, bão hòa từ epoch 7), thấp hơn GRU4Rec gốc của dự án 0,3951 (Δ −0,0063, CI 95% [−0,0075; −0,0051]). Bản chính thức tốt hơn ở target mới (0,146 so với 0,119) và HR@20 (0,559 so với 0,536), kém ở target lặp (0,722 so với 0,774).
 
 ---
 
