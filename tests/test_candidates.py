@@ -59,15 +59,6 @@ def test_from_frames():
     assert main.eligible(np.array([5, 6]), np.array([1, 1])).tolist() == [True, False]  # known_at still applies
 
 
-def test_exclude_applies_to_candidates_and_fallback(flt):
-    candidates = np.array([[30, 20, -1], [40, 30, -1]])
-    times = np.array([600, 600])
-    exclude = np.array([[30, -1], [20, 10]])
-    topk, _, fb = finalize_topk(candidates, times, flt, fallback_items=[30, 20, 10, 40], k=3, exclude=exclude)
-    assert topk[0].tolist() == [20, 10, 40] and fb[0].tolist() == [False, True, True]
-    assert topk[1].tolist() == [40, 30, -1]  # 20 and 10 excluded, nothing else eligible
-
-
 def test_chunking_is_transparent(flt):
     rng = np.random.default_rng(0)
     candidates = rng.choice([10, 20, 30, 40, 99, -1], size=(50, 4))
@@ -91,15 +82,14 @@ def test_matches_reference_loop_with_long_fallback():
     cands = np.array([np.r_[r[r != -1], r[r == -1]] for r in cands])  # padding at the end
     times = rng.integers(0, 1000, n)
     fallback = rng.permutation(vocab)  # 300 items > window
-    exclude = rng.integers(1, 300, (n, 5))
-    topk, _, fb = finalize_topk(cands, times, f, fallback, k=k, exclude=exclude, chunk=7)
+    topk, _, fb = finalize_topk(cands, times, f, fallback, k=k, chunk=7)
     for r in range(n):
         out, flags = [], []
         for src, is_fb in [(cands[r], False), (fallback, True)]:
             for it in src:
                 if len(out) == k:
                     break
-                if it == -1 or it in out or it in exclude[r] or not f.eligible(np.array([it]), np.array([times[r]]))[0]:
+                if it == -1 or it in out or not f.eligible(np.array([it]), np.array([times[r]]))[0]:
                     continue
                 out.append(it); flags.append(is_fb)
         assert topk[r][:len(out)].tolist() == out and (topk[r][len(out):] == -1).all()

@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from rr.ablation import (assign_session_splits, build_samples, flag_heavy_visitors, heavy_visitor_thresholds,
-                         known_at_for, merge_repeated_groups, sessionize, topk_matrix)
+from rr.ablation import assign_session_splits, build_samples, known_at_for, sessionize, topk_matrix
 
 MIN = 60_000
 
@@ -37,38 +36,6 @@ def test_split_rules_match_notebook_02_examples():
     end = [100, 100, 101, 200, 201, 200, 230, 230]
     assert assign_session_splits(start, end, 100, 200).tolist() == [
         "train", "train", "boundary_drop", "validation", "boundary_drop", "validation", "test", "boundary_drop"]
-
-
-def test_merge_repeated_groups_drops_only_consecutive_identical_sets():
-    # g1 {A view}, g2 {A view} (dup), g3 {B view}, g4 {A view}, g5 {A view, B cart}, g6 {B cart, A view} (dup, other order)
-    ev = clean([(1, 0, 1, "view"), (1, MIN, 1, "view"), (1, 2 * MIN, 2, "view"), (1, 3 * MIN, 1, "view"),
-                (1, 4 * MIN, 1, "view"), (1, 4 * MIN, 2, "addtocart"),
-                (1, 5 * MIN, 2, "addtocart"), (1, 5 * MIN, 1, "view"),
-                (2, 0, 1, "view"), (2, MIN, 1, "addtocart")])          # same item, other behavior: kept
-    s = sessionize(ev, 30 * MIN, (10 * MIN, 20 * MIN))
-    merged, stats = merge_repeated_groups(s)
-    one = merged[merged["session_id"] == 1].sort_values("event_id")
-    assert one["timestamp"].drop_duplicates().tolist() == [0, 2 * MIN, 3 * MIN, 4 * MIN]
-    assert one["group_index"].drop_duplicates().tolist() == [1, 2, 3, 4]
-    assert len(merged[merged["session_id"] == 2]) == 2
-    assert stats["groups_dropped"] == 2 and stats["events_dropped"] == 3
-    q, t = build_samples(merged, "train")
-    assert len(q) == 3 + 1
-    first = t[t["query_id"] == q["query_id"].iloc[0]]
-    assert first["itemid"].tolist() == [2] and not first["target_is_repeat"].any()
-
-
-def test_heavy_visitors_use_daily_counts():
-    day = 86_400_000
-    train = clean([(1, k, 5, "view") for k in range(10)] + [(2, 0, 5, "view"), (2, day, 5, "view")]
-                  + [(3, 0, 5, "transaction"), (3, 1, 6, "transaction")])
-    thr = heavy_visitor_thresholds(train, 0.5)
-    # visitor-days: events [10, 1, 1, 2] -> median 1.5; transactions [0, 0, 0, 2] -> median 0
-    assert thr == {"quantile": 0.5, "events_per_day": 1.5, "transactions_per_day": 0.0}
-    other = clean([(7, 0, 5, "view"), (8, 0, 5, "view"), (8, 1, 5, "view"), (9, 0, 5, "transaction")])
-    assert flag_heavy_visitors(other, thr).tolist() == [8, 9]
-    # the same two events on two different days are not heavy
-    assert flag_heavy_visitors(clean([(8, 0, 5, "view"), (8, day, 5, "view")]), thr).tolist() == []
 
 
 def test_known_at_uses_fit_events_and_first_property():

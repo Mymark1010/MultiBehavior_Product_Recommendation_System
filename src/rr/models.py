@@ -104,18 +104,6 @@ def repeat_last(prefix: pd.DataFrame, query_ids, width: int = 50):
     return rank_long(agg["row"].to_numpy(), agg["itemid"].to_numpy(), score, len(query_ids), width)
 
 
-def prefix_matrix(prefix: pd.DataFrame, query_ids, max_items=None):
-    """Distinct prefix items per query as an int64 matrix padded with -1 (for exclude_seen)."""
-    row_of = pd.Series(np.arange(len(query_ids)), index=np.asarray(query_ids))
-    p = prefix[["query_id", "itemid", "distance"]].sort_values(["query_id", "distance"]).drop_duplicates(["query_id", "itemid"])
-    rows = row_of.reindex(p["query_id"].to_numpy()).to_numpy()
-    width = int(np.bincount(rows, minlength=len(query_ids)).max()) if len(rows) else 0
-    if max_items is not None:
-        width = min(width, max_items)
-    items, _ = rank_long(rows, p["itemid"].to_numpy(), -p["distance"].to_numpy(dtype=float), len(query_ids), max(width, 1))
-    return items
-
-
 # ---------------------------------------------------------------- query vectors
 def query_weights(prefix: pd.DataFrame, query_ids, index: ItemIndex, scheme: str, bw: np.ndarray | None = None,
                   decay: float = 1.0, lam: float = 1.0):

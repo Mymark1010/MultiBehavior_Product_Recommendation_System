@@ -1,14 +1,10 @@
-"""Session thresholds and data ablations (notebooks 09, 10 and 12).
+"""Session thresholds and model scoring shared by notebooks 09 and 10.
 
 Nothing here changes the locked protocol: every function returns new in-memory frames and the
 main pipeline (notebooks 01-10) keeps reading its own artifacts.
 
 * :func:`sessionize` repeats notebook 02 (sessions, timestamp groups, whole-session split with the
   same cutoffs) for any inactivity threshold; with 30 minutes it must reproduce notebook 02 exactly.
-* :func:`merge_repeated_groups` is the D1 optional ablation: a group whose set of
-  ``(itemid, event)`` pairs equals the previous group of the same session is dropped.
-* :func:`heavy_visitor_thresholds` / :func:`flag_heavy_visitors` define abnormal visitors from the
-  per-(visitor, UTC day) activity of the train split only.
 * :func:`score_models` fits the frozen configuration of each model on a frame of fitting events and
   scores one evaluation sample, through the same filter/fallback/metrics as notebook 10.
 """
@@ -19,11 +15,9 @@ import time
 import numpy as np
 import pandas as pd
 
-from rr.samples import BEHAVIORS, build_queries, build_targets
+from rr.samples import build_queries, build_targets
 
 SPLIT_NAMES = ["train", "validation", "test", "boundary_drop"]
-DAY_MS = 86_400_000
-BEH_CODE = {b: i for i, b in enumerate(BEHAVIORS)}
 
 
 # ---------------------------------------------------------------- sessions and split
@@ -85,39 +79,6 @@ def split_summary(events: pd.DataFrame) -> dict:
     return out
 
 
-# ---------------------------------------------------------------- repeated groups
-def group_signatures(events: pd.DataFrame) -> pd.Series:
-    """Exact signature of each group: sorted distinct ``itemid*4 + behavior code`` joined as text."""
-    key = events["itemid"].to_numpy(dtype=np.int64) * 4 + events["event"].astype(str).map(BEH_CODE).to_numpy(dtype=np.int64)
-    pairs = pd.DataFrame({"g": events["group_id"].to_numpy(), "k": key}).drop_duplicates().sort_values(["g", "k"])
-    sizes = pairs.groupby("g").size()
-    single = pairs[pairs["g"].isin(sizes.index[sizes == 1])].set_index("g")["k"].astype(str)
-    multi = (pairs[pairs["g"].isin(sizes.index[sizes > 1])].groupby("g")["k"]
-             .agg(lambda k: ",".join(map(str, k))))
-    return pd.concat([single, multi]).sort_index()
-
-
-def merge_repeated_groups(events: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    """Drop every group whose (item, behavior) set equals the previous group of the same session.
-
-    The first group of a run is kept (its timestamp is the first time the set was seen); later
-    groups of the session are renumbered so that ``group_index`` stays 1..n without gaps.
-    """
-    g = groups_of(events)
-    sig = group_signatures(events).reindex(g["group_id"]).to_numpy()
-    same_session = g["session_id"].eq(g["session_id"].shift()).to_numpy()
-    dropped = same_session & (sig == np.roll(sig, 1))
-    keep_groups = g.loc[~dropped, ["group_id", "session_id"]].copy()
-    keep_groups["new_index"] = (keep_groups.groupby("session_id").cumcount() + 1).astype("int32")
-    out = events[events["group_id"].isin(keep_groups["group_id"])].copy()
-    out["group_index"] = out["group_id"].map(keep_groups.set_index("group_id")["new_index"]).astype("int32")
-    stats = {"groups_before": int(len(g)), "groups_dropped": int(dropped.sum()),
-             "events_dropped": int(len(events) - len(out)),
-             "groups_dropped_by_split": {str(k): int(v) for k, v in
-                                         g.loc[dropped, "split"].astype(str).value_counts().items()}}
-    return out, stats
-
-
 # ---------------------------------------------------------------- samples
 def build_samples(events: pd.DataFrame, split: str, first_query_id: int = 0):
     """Queries and targets of one split (targets carry the flags :func:`rr.metrics.evaluate` uses)."""
@@ -137,28 +98,6 @@ def known_at_for(catalog: pd.DataFrame, fit_events: pd.DataFrame, column: str = 
     known = np.fmin(ev, prop)
     out[column] = pd.array(np.where(np.isnan(known), pd.NA, known), dtype="Int64")
     return out
-
-
-# ---------------------------------------------------------------- heavy visitors
-def visitor_day_activity(events: pd.DataFrame) -> pd.DataFrame:
-    """Events and transactions per (visitor, UTC day)."""
-    frame = pd.DataFrame({"visitorid": events["visitorid"].to_numpy(),
-                          "day": events["timestamp"].to_numpy() // DAY_MS,
-                          "tx": (events["event"].astype(str) == "transaction").to_numpy()})
-    return frame.groupby(["visitorid", "day"]).agg(events=("tx", "size"), transactions=("tx", "sum")).reset_index()
-
-
-def heavy_visitor_thresholds(train_events: pd.DataFrame, quantile: float) -> dict:
-    act = visitor_day_activity(train_events)
-    return {"quantile": quantile, "events_per_day": float(act["events"].quantile(quantile)),
-            "transactions_per_day": float(act["transactions"].quantile(quantile))}
-
-
-def flag_heavy_visitors(events: pd.DataFrame, thresholds: dict) -> np.ndarray:
-    """Visitors with, on some UTC day of ``events``, more events or transactions than the thresholds."""
-    act = visitor_day_activity(events)
-    heavy = (act["events"] > thresholds["events_per_day"]) | (act["transactions"] > thresholds["transactions_per_day"])
-    return np.sort(act.loc[heavy, "visitorid"].unique())
 
 
 def topk_matrix(long: pd.DataFrame, query_ids, k: int = 20) -> np.ndarray:

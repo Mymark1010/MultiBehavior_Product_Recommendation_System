@@ -117,8 +117,7 @@ FALLBACK_WINDOW = 64  # fallback items examined per pass; rows already full stop
 
 
 def finalize_topk(candidates, times, candidate_filter: CandidateFilter, fallback_items,
-                  k: int = 20, candidate_scores=None, fallback_scores=None, chunk: int = 20000,
-                  exclude=None):
+                  k: int = 20, candidate_scores=None, fallback_scores=None, chunk: int = 20000):
     """Chunked wrapper of :func:`finalize_topk_block` (same arguments and results).
 
     ``fallback_items`` must already be cut to the protocol's ``fallback_top_n``; the chunk size is
@@ -127,18 +126,13 @@ def finalize_topk(candidates, times, candidate_filter: CandidateFilter, fallback
     candidates = np.asarray(candidates, dtype=np.int64)
     times = np.asarray(times, dtype=np.int64)
     fallback_items = np.asarray(fallback_items, dtype=np.int64)
-    if exclude is not None:
-        exclude = np.asarray(exclude, dtype=np.int64)
-        if len(exclude) != len(candidates):
-            raise ValueError("exclude phải có cùng số dòng với candidates.")
     chunk = max(1, min(chunk, MAX_FALLBACK_CELLS // max(len(fallback_items), 1)))
     parts = []
     for start in range(0, len(candidates), chunk):
         sl = slice(start, start + chunk)
         parts.append(finalize_topk_block(
             candidates[sl], times[sl], candidate_filter, fallback_items, k,
-            None if candidate_scores is None else np.asarray(candidate_scores)[sl], fallback_scores,
-            None if exclude is None else exclude[sl]))
+            None if candidate_scores is None else np.asarray(candidate_scores)[sl], fallback_scores))
     if not parts:
         return (np.empty((0, k), np.int64), np.empty((0, k)), np.empty((0, k), bool))
     return tuple(np.concatenate([p[i] for p in parts]) for i in range(3))
@@ -155,11 +149,8 @@ def _row_member(values, row_sets):
 
 
 def finalize_topk_block(candidates, times, candidate_filter: CandidateFilter, fallback_items,
-                        k: int = 20, candidate_scores=None, fallback_scores=None, exclude=None):
+                        k: int = 20, candidate_scores=None, fallback_scores=None):
     """Filter ranked model candidates, de-duplicate, cut at k, then fill with eligible fallback items.
-
-    exclude: optional int64 [n, E] item IDs (-1 padded) never recommended for that row, used by the
-    ``exclude_seen`` variant (prefix items); applies to model candidates and to fallback items.
 
     candidates: int64 [n, N] original item IDs ranked best-first (-1 padding allowed).
     times: query time (ms) per row.
@@ -176,7 +167,6 @@ def finalize_topk_block(candidates, times, candidate_filter: CandidateFilter, fa
     if candidates.shape[1]:
         mask = (candidates != PAD_ITEM) & _dedupe_rows(candidates)
         mask &= candidate_filter.eligible(candidates, times[:, None])
-        mask &= ~_row_member(candidates, exclude)
         filled = _compact(candidates, mask, k, out=topk)
         if candidate_scores is not None:
             _compact(np.asarray(candidate_scores, dtype=float), mask, k, out=scores)
@@ -191,8 +181,6 @@ def finalize_topk_block(candidates, times, candidate_filter: CandidateFilter, fa
         block = np.broadcast_to(window, (len(rows), len(window)))
         mask = candidate_filter.eligible(block, times[rows][:, None])
         mask &= ~_row_member(block, topk[rows])
-        if exclude is not None:
-            mask &= ~_row_member(block, exclude[rows])
         sub_topk, sub_scores, sub_flag = topk[rows], scores[rows], is_fallback[rows]
         new_filled = _compact(block, mask, k, start=filled[rows], out=sub_topk, out_mask=sub_flag)
         if fs_all is not None:

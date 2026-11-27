@@ -48,8 +48,8 @@ def test_states_are_independent_of_batching_and_sessions():
     torch.testing.assert_close(seq, per)
     # hidden state reset: session 2 prefix {10} equals session 1 prefix {10}
     torch.testing.assert_close(seq[0], seq[2])
-    last = query_states(model, data, q, mode="last_group")
-    torch.testing.assert_close(last[0], seq[0])  # prefix of length 1 is its own last group
+    with pytest.raises(ValueError):
+        query_states(model, data, q, mode="shuffled")
 
 
 def test_loss_decreases_and_learns_transition():

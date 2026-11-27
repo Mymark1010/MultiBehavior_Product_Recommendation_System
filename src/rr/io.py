@@ -1,6 +1,6 @@
 """Project paths, fingerprints, verified writes and report helpers.
 
-Conventions (see CLAUDE.md): no absolute paths in outputs, JSON written with LF,
+Conventions: no absolute paths in outputs, JSON written with LF,
 Parquet written to a temporary file, read back, compared exactly, then replaced.
 """
 from __future__ import annotations

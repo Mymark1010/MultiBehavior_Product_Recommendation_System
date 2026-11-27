@@ -229,14 +229,11 @@ def negative_distribution(data: GroupData, n_items: int, alpha: float = 0.75):
 
 
 @torch.no_grad()
-def query_states(model, data: GroupData, queries: pd.DataFrame, batch_size: int = 512, mode: str = "sequential",
-                 seed: int = 0):
+def query_states(model, data: GroupData, queries: pd.DataFrame, batch_size: int = 512, mode: str = "sequential"):
     """Output vector after the prefix of every query (rows aligned with ``queries``).
 
     mode ``sequential``: run every session once and read step ``prefix_len_groups``.
-    mode ``per_query``: run each prefix as its own sequence (same result; used as a check).
-    mode ``shuffled``: per-query prefix with group order randomly permuted (ablation).
-    mode ``last_group``: only the last prefix group (ablation).
+    mode ``per_query``: run each prefix as its own sequence (same result; used as a leakage check).
     """
     model.eval()
     pos = np.searchsorted(data.sessions, queries["session_id"].to_numpy())
@@ -258,19 +255,14 @@ def query_states(model, data: GroupData, queries: pd.DataFrame, batch_size: int 
         for k in range(len(queries)):
             out[k] = result[int(pos[k])][t[k] - 1]
         return out
-    rng = np.random.default_rng(seed)
-    if mode == "last_group":
-        starts, lengths = start + t - 1, np.ones_like(t)
-    else:
-        starts, lengths = start, t
+    if mode != "per_query":
+        raise ValueError(f"mode không hợp lệ: {mode}")
+    starts, lengths = start, t
     order_idx = np.argsort(lengths, kind="stable")
     for i in range(0, len(order_idx), batch_size):
         sel = order_idx[i:i + batch_size]
         L = int(lengths[sel].max())
         grid = starts[sel][:, None] + np.arange(L)[None, :]
-        if mode == "shuffled":
-            for r, n in enumerate(lengths[sel]):
-                grid[r, :n] = grid[r, :n][rng.permutation(n)]
         grid = np.where(np.arange(L)[None, :] < lengths[sel][:, None], grid, 0)
         o, _ = model(data, starts[sel], lengths[sel], order=grid)
         out[torch.from_numpy(sel)] = o[torch.arange(len(sel)), torch.from_numpy(lengths[sel] - 1)]

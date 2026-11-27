@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import scipy.sparse as sp
 
-from rr.models import ItemKNN, SessionKNN, popularity, prefix_matrix, rank_long, repeat_last, topn_csr
+from rr.models import ItemKNN, SessionKNN, popularity, rank_long, repeat_last, topn_csr
 
 
 def ev(rows):
@@ -33,7 +33,6 @@ def test_repeat_last_order():
     p = pre([(7, 1, "view", 1), (7, 2, "view", 0), (7, 3, "addtocart", 0), (7, 1, "view", 2), (8, 4, "view", 0)])
     items, _ = repeat_last(p, [7, 8, 9], width=4)
     assert items.tolist() == [[3, 2, 1, -1], [4, -1, -1, -1], [-1, -1, -1, -1]]
-    assert prefix_matrix(p, [7, 8]).tolist() == [[2, 3, 1], [4, -1, -1]]
 
 
 def test_itemknn_cosine_by_hand():

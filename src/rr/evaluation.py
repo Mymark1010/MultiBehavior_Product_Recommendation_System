@@ -23,11 +23,11 @@ def load_samples(root: Path, split: str):
 
 
 def run(candidates, cand_scores, queries: pd.DataFrame, targets: pd.DataFrame, flt: CandidateFilter,
-        fallback_items, fallback_scores=None, exclude=None, k: int = K_MAX):
+        fallback_items, fallback_scores=None, k: int = K_MAX):
     """Finalize Top-K (filter at t, dedupe, fallback) and evaluate. Returns (report, per_query, topk, is_fallback)."""
     t0 = time.perf_counter()
     topk, scores, is_fb = finalize_topk(candidates, queries["query_time_ms"].to_numpy(), flt, fallback_items, k,
-                                        cand_scores, fallback_scores, exclude=exclude)
+                                        cand_scores, fallback_scores)
     report, per_query = evaluate(topk, queries, targets)
     report["fallback"] = {
         "slot_rate": float(is_fb.mean()),
