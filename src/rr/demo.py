@@ -48,20 +48,20 @@ class Recommender:
         events = pd.read_parquet(processed / "events_sessionized.parquet",
                                  columns=["session_id", "group_index", "itemid", "event", "timestamp", "split"])
         train = events[events["split"].astype(str) == "train"]
-        pop = read_json(root / "reports/eval/popularity_validation.json")["selected"]["fallback_weights"]
+        pop = read_json(root / "reports/05_08_validation/popularity_validation.json")["selected"]["fallback_weights"]
         n = protocol["candidates"]["fallback_top_n"]
         self.fb_items, self.fb_scores = (a[:n] for a in popularity(train, pop))
         self.kind = model
         if model == "knn":
-            knn = read_json(root / "reports/eval/knn_validation.json")
+            knn = read_json(root / "reports/05_08_validation/knn_validation.json")
             sel = knn["selected"]
             self.family = max(sel, key=lambda f: knn["runs"][sel[f]["best_run"]]["all"]["ndcg@20"])
             self.selected = sel
             self.model = fit_neighbour_model(self.family, sel, train)
-        elif model == "gru4rec":
-            cfg = read_json(root / "models/gru4rec/config.json")
+        elif model in ("gru4rec", "gru4rec_item"):  # with behavior embedding / original item-only
+            cfg = read_json(root / f"models/{model}/config.json")
             self.model = G.build_from_config(cfg)
-            self.model.load_state_dict(torch.load(root / "models/gru4rec/model.pt"))
+            self.model.load_state_dict(torch.load(root / f"models/{model}/model.pt"))
             self.model.eval()
             self.idx_item = G.idx_to_itemid(self.vocab)
         else:
