@@ -214,7 +214,7 @@
       "vstan": "STAN + IDF weighting of shared items and of candidate items (lambda_idf)",
       "itemknn": "kept from T11 as an extra non-sequential neighbour baseline"
     },
-    "gru4rec": "own implementation following the official GRU4Rec feature set (Hidasi & Czapp 2023): losses cross-entropy and bpr-max (elu, bpreg), shared negative sampling n_sample=2048 with sample_alpha, optional constrained embedding; grid starts from the official RetailRocket setting (hidden 224, batch 80); input = timestamp group, with (gru4rec) or without (gru4rec_item) behavior embedding; optimiser and regularisation differ from the official RetailRocket paramfile (here Adam/SparseAdam lr 0.002, sample_alpha 0.5, bpreg 1.0; official: Adagrad lr 0.05 with momentum 0.4, sample_alpha 0.4, bpreg 1.95, 10 epochs)",
+    "gru4rec": "own implementation following the official GRU4Rec feature set (hidasib/GRU4Rec_PyTorch_Official; bpr-max from Hidasi & Karatzoglou, CIKM 2018): losses cross-entropy and bpr-max (elu, bpreg), shared negative sampling n_sample=2048 with sample_alpha, optional constrained embedding; grid starts from the official RetailRocket setting (hidden 224, batch 80); input = timestamp group, with (gru4rec) or without (gru4rec_item) behavior embedding; optimiser and regularisation differ from the official RetailRocket paramfile (here Adam/SparseAdam lr 0.002, sample_alpha 0.5, bpreg 1.0; official: Adagrad lr 0.05 with momentum 0.4, sample_alpha 0.4, bpreg 1.95, 10 epochs)",
     "not_in_scope": [
       "SR-GNN (removed in v1.3.1, 2026-11-26)",
       "S-POP, SR, V-SKNN (removed in v1.3.2, 2026-11-26)",
